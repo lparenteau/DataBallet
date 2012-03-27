@@ -75,6 +75,7 @@ conf
         set ^httpm("ct",".jpeg")="image/jpeg"
         set ^httpm("ct",".gif")="image/gif"
         set ^httpm("ct",".png")="image/png"
+
         quit
 
 start
@@ -82,11 +83,9 @@ start
 	; Start the HTTP server.
 	;
 	do conf
-	new socket,key,handle,delim,eol
-	set eol=$char(13)_$char(10)
-	set delim=$char(10)
+	new socket,key,handle
 	set socket="httpm"
-	open socket:(ZLISTEN=^httpm("conf","listen")_":TCP":delim=delim:attach="httpm")::"SOCKET"
+	open socket:(ZLISTEN=^httpm("conf","listen")_":TCP":attach="httpm"):30:"SOCKET"
 	use socket
 	write /listen(5)
 	for  do
@@ -94,24 +93,29 @@ start
 	.	for  do  quit:key'=""
 	.	.	write /wait(1)
 	.	.	set key=$key
+	.	; Spawn a new process to handle the connection then close the connected socket as we won't use it from here.
 	.	set handle=$piece(key,"|",2)
-	.	do serve(handle)
+	.	zsystem "$gtm_dist/mumps -run serve^httpm <&6 >&6 &"
+	.	close socket:(socket=handle)
 	.	use socket
 	close socket
 	quit
 
-serve(handle)
+serve
 	;
 	; Server web page(s) to a connected client.
 	;
-	new line,httpver
-	use socket:(socket=handle:nowrap)
-	read line
-	set httpver=$$FUNC^%UCASE($ztranslate($zpiece(line," ",3),$char(13)))
-	if httpver="HTTP/1.1" do serve11(line) if 1
-	else  if httpver="HTTP/1.0" do serve10(line) if 1
-	else  if httpver="" do serve09(line)
-	close socket:(socket=handle)
+	new line,httpver,eol,delim
+	set eol=$char(13)_$char(10)
+	set delim=$char(10)
+	set timeout=10
+	use $io:(nowrap:znodelay:delim=delim)
+	read line:timeout
+	if $test,'$zeof do
+	.	set httpver=$$FUNC^%UCASE($ztranslate($zpiece(line," ",3),$char(13)))
+	.	if httpver="HTTP/1.1" do serve11(line) if 1
+	.	else  if httpver="HTTP/1.0" do serve10(line) if 1
+	.	else  if httpver="" do serve09(line)
 	quit
 
 serve09(line)
@@ -128,18 +132,15 @@ serve09(line)
 
 	; Extract the Request-URI from the 1st line.
 	new file
-	set file=$zparse(^httpm("conf","root")_$ztranslate($zpiece(line," ",2),$char(13)))
+	set file=$$parseuri(line)
 
-	; Ensure that the requested file sits inside the document root.
+	; Ensure that the requested file exists and sits inside the document root.
+	set dontcare=$zsearch("")
+	quit:$zsearch(file)=""
 	quit:$zextract(file,0,$zlength(^httpm("conf","root")))'=^httpm("conf","root")
 
-	; Read all content and send it.
-	open file:(fixed:wrap:readonly:chset="M")
-	for  use file read line quit:$zeof  do
-	.	use socket:(socket=handle)
-	.	write line
-	.	set $x=0
-	close file
+	do sendfile(file)
+
 	quit
 
 serve10(line)
@@ -157,25 +158,23 @@ serve10(line)
 
 	; Extract the Request-URI
 	new file
-	set file=$zparse(^httpm("conf","root")_$zpiece(line," ",2))
-	if $zparse(file,"DIRECTORY")=file set file=file_^httpm("conf","index")
+	set file=$$parseuri(line)
 
 	; Ensure that the requested file exists and sits inside the document root.
+	set dontcare=$zsearch("")
 	if $zsearch(file)="" do senderr("404") quit
 	if $zextract(file,0,$zlength(^httpm("conf","root")))'=^httpm("conf","root") do senderr("404") quit
 
 	; Read all request
-	kill host,useragent,acceptencoding,connection
-	new host,useragent,acceptencoding,connection
-	for  read line quit:line=$char(13)  do
+	new host,useragent,acceptencoding
+	for  read line:timeout quit:'$test  quit:line=$char(13)  quit:$zeof  do
 	.	set fieldname=$$FUNC^%UCASE($zpiece(line," ",1))
 	.	if fieldname="HOST:" set host=$$FUNC^%UCASE($ztranslate($zpiece(line," ",2),$char(13)))
 	.	else  if fieldname="USER-AGENT:" set useragent=$ztranslate($zpiece(line," ",2),$char(13))
 	.	else  if fieldname="ACCEPT-ENCODING:" set acceptencoding=$ztranslate($zpiece(line," ",2),$char(13))
-	.	else  if fieldname="CONNECTION:" set connection=$ztranslate($zpiece(line," ",2),$char(13))
-
-	; Validate host
-	if $data(host),host'=^httpm("conf","host"),host'=^httpm("conf","host")_":"_^httpm("conf","listen") do senderr("404") quit
+	.	else  if fieldname="CONNECTION:" set connection=$$FUNC^%UCASE($ztranslate($zpiece(line," ",2),$char(13)))
+	quit:'$test
+	quit:$zeof
 
 	; Send response headers
 	do sendstatus("200")
@@ -183,13 +182,7 @@ serve10(line)
 	write eol
 
 	quit:method="HEAD"
-	; Read all content and send it.
-	open file:(fixed:wrap:readonly:chset="M")
-	for  use file read line quit:$zeof  do
-	.	use socket:(socket=handle)
-	.	write line
-	.	set $x=0
-	close file
+	do sendfile(file)
 
 	quit
 
@@ -198,24 +191,19 @@ serve11(line)
 	; Server HTTP/1.1 requests
 	;
 
-	; For now, serve those using HTTP/1.0
-	do serve10(line)
+	new connection
+	set connection=""
+	for  do serve10(line) quit:connection'="KEEP-ALIVE"  read line:timeout quit:'$test  quit:$zeof
 	quit
 
 senderr(status)
-	new old
-	set old=$io
-	use $principal
-	write "Requested file : "_file_" Status : "_status,!
-	use old
-	kill old
 	do sendstatus(status)
 	if $data(^httpm("status",status,"data")) write "Content-Type: "_^httpm("status","404","ct")_eol_eol_^httpm("status",status,"data") if 1
 	else  write eol
 	quit
 
 sendstatus(status)
-	write "HTTP/1.0 "_status_" "_^httpm("status",status)_eol
+	write httpver_" "_status_" "_^httpm("status",status)_eol
 	write "Date: "_$zdate($horolog,"DAY, DD MON YEAR 24:60:SS ")_^httpm("conf","timezone")_eol
 	write "Server: httpm"_eol
 	quit
@@ -227,3 +215,23 @@ sendct(file)
 	else  set ct="text/plain"
 	write "Content-Type: "_ct_eol
 	quit
+
+sendfile(file)
+	; Read all content and send it.
+	new old
+	set old=$IO
+	open file:(fixed:wrap:readonly:chset="M")
+	for  use file read line:timeout quit:'$test  quit:$zeof  do
+	.	use old
+	.	write line
+	.	set $x=0
+	close file
+	use old
+	quit
+
+parseuri(line)
+	new file
+	set file=$zparse(^httpm("conf","root")_$ztranslate($zpiece(line," ",2),$char(13)))
+	if $zparse(file,"DIRECTORY")=file set file=file_^httpm("conf","index")
+	quit file
+

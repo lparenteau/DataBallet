@@ -1,11 +1,14 @@
 HTTP server developed using GT.M.
 
 The following globals are required (some configuration utility will goes in eventually).
-^httpm("conf","root")		:	Fullpath to documents (like Apache's Docroot).
-^httpm("conf","index")		:	Default file name if a path is requested (you probably want index.html).
-^httpm("conf","listen")		:	Port to listen on.
-^httpm("conf","host")		:	Server's hostname (or virtual hostname).
-^httpm("conf","timezone")	:	Server's timezone.
+^httpm("conf","root")		:	Fullpath to document root.  Example : "/var/www/localhost/htdocs/"
+^httpm("conf","index")		:	Default file name if a path is requested.  Example : "index.html"
+^httpm("conf","listen")		:	Port to listen on.  Example : 8080
+^httpm("conf","host")		:	Server's hostname (or virtual hostname).  Example : "localhost"
+^httpm("conf","timezone")	:	Server's timezone.  Example : "EDT"
 
-To run :
-Execute conf^httpm once, than start the server by calling start^httpm.
+Initial internal configuration (needed only once) :
+$gtm_dist/mumps -run conf^httpm
+
+Start the server :
+$gtm_dist/mumps -run start^httpm
