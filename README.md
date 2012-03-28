@@ -14,16 +14,17 @@ The following globals are required (some configuration utility will goes in even
 	^httpm("conf","host")		:	Server's hostname (or virtual hostname).  Example : "localhost"
 	^httpm("conf","timezone")	:	Server's timezone.  Example : "EDT"
 
-### Initial setup
+The following globals are recommended, but not required.
 
-The first time you run the server, and after any upgrade, you have to setup some internal configuration.
+	^httpm("conf","log")		:	Fullpath and file name for error log.  Example : "/tmp/httpm.log"
+	^httpm("conf","server")		:	Server identification string.  Example : "httpm"
 
-	$gtm_dist/mumps -run conf^httpm
-
-## Using it
+## Starting the server
 
 Start the server by executing stat^httpm.
 
 	$gtm_dist/mumps -run start^httpm
 
-To stop the server, press CTRL-C in the terminal where the server is running then `halt` it.
+## Stoping the server
+
+To stop the server, press CTRL-C in the terminal where the server is running then `halt` it or use `$gtm_dist/mupip stop <pid>`.

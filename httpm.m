@@ -45,6 +45,7 @@ conf
         set ^httpm("status","404")="Not Found"
         set ^httpm("status","404","data")="<html><head><title>404 : Page Not Found</title></head><body><h1>404 : Page Not Found</h1></body></html>"
         set ^httpm("status","404","ct")="text/html"
+	set ^httpm("status","404","cl")=$zlength(^httpm("status","404","data"))
         set ^httpm("status","405")="Method Not Allowed"
         set ^httpm("status","406")="Not Acceptable"
         set ^httpm("status","407")="Proxy Authentication Required"
@@ -75,6 +76,7 @@ conf
         set ^httpm("ct",".jpeg")="image/jpeg"
         set ^httpm("ct",".gif")="image/gif"
         set ^httpm("ct",".png")="image/png"
+	set ^httpm("serverstring")="httpm"
 
         quit
 
@@ -82,6 +84,7 @@ start
 	;
 	; Start the HTTP server.
 	;
+	set $ZTRAP="do errhandler"
 	do conf
 	new socket,key,handle
 	set socket="httpm"
@@ -95,7 +98,7 @@ start
 	.	.	set key=$key
 	.	; Spawn a new process to handle the connection then close the connected socket as we won't use it from here.
 	.	set handle=$piece(key,"|",2)
-	.	zsystem "$gtm_dist/mumps -run serve^httpm <&6 >&6 &"
+	.	zsystem "$gtm_dist/mumps -run serve^httpm <&6 >&6 2>/dev/null &"
 	.	close socket:(socket=handle)
 	.	use socket
 	close socket
@@ -105,6 +108,7 @@ serve
 	;
 	; Server web page(s) to a connected client.
 	;
+	set $ZTRAP="do errhandler"
 	new line,httpver,eol,delim
 	set eol=$char(13)_$char(10)
 	set delim=$char(10)
@@ -177,12 +181,10 @@ serve10(line)
 	quit:$zeof
 
 	; Send response headers
-	do sendstatus("200")
-	do sendct(file)
-	write eol
+	do sendresphdr(file)
 
-	quit:method="HEAD"
-	do sendfile(file)
+	; Send the content only if it isn't a HEAD request
+	do:method'="HEAD" sendfile(file)
 
 	quit
 
@@ -197,27 +199,62 @@ serve11(line)
 	quit
 
 senderr(status)
+	;
+	; Send an HTTP error response
+	;
+
 	do sendstatus(status)
-	if $data(^httpm("status",status,"data")) write "Content-Type: "_^httpm("status","404","ct")_eol_eol_^httpm("status",status,"data") if 1
-	else  write eol
+	if '$data(^httpm("status",status,"data")) write eol
+	else  do
+	.	write "Content-Type: "_^httpm("status",status,"ct")_eol
+	.	write "Content-Length: "_^httpm("status",status,"cl")_eol
+	.	write eol_^httpm("status",status,"data")
 	quit
 
-sendstatus(status)
-	write httpver_" "_status_" "_^httpm("status",status)_eol
-	write "Date: "_$zdate($horolog,"DAY, DD MON YEAR 24:60:SS ")_^httpm("conf","timezone")_eol
-	write "Server: httpm"_eol
-	quit
+sendresphdr(file)
+	;
+	; Send the response header for the supplied file
+	;
 
-sendct(file)
-	new ext,ct
+	new ext,ct,old,du,length
+
+	do sendstatus("200")
+
+	; Get and send content-type
 	set ext=$zparse(file,"TYPE")
 	if $zlength(ext),$data(^httpm("ct",ext)) set ct=^httpm("ct",ext)
 	else  set ct="text/plain"
 	write "Content-Type: "_ct_eol
+
+	; Get and send content-length
+	set old=$io
+	set du="du"
+	open du:(command="du -b "_file:readonly)::"PIPE"
+	use du
+	read length
+	use old
+	close du
+	write "Content-Length: ",$zpiece(length,$char(9),1),eol
+
+	; HTTP mandate a blank line between headers and content.
+	write eol
+	quit
+
+sendstatus(status)
+	;
+	; Send the stats line and basic header of an HTTP response
+	;
+
+	write httpver_" "_status_" "_^httpm("status",status)_eol
+	write "Date: "_$zdate($horolog,"DAY, DD MON YEAR 24:60:SS ")_^httpm("conf","timezone")_eol
+	write:$data(^httpm("conf","server")) "Server: "_^httpm("conf","server")_eol
 	quit
 
 sendfile(file)
-	; Read all content and send it.
+	;
+	; Read all content of a file and send it.
+	;
+
 	new old
 	set old=$IO
 	open file:(fixed:wrap:readonly:chset="M")
@@ -230,8 +267,32 @@ sendfile(file)
 	quit
 
 parseuri(line)
+	;
+	; Parse the requested URI and get the requested file from it.
+	; Use a default file name in case a directory is requested.
+	; The resulting file is returned to the caller.
+	;
+
 	new file
 	set file=$zparse(^httpm("conf","root")_$ztranslate($zpiece(line," ",2),$char(13)))
 	if $zparse(file,"DIRECTORY")=file set file=file_^httpm("conf","index")
 	quit file
 
+errhandler
+	;
+	; Error handler in case something bad happens.  Will print some debug information of a log
+	; file has been configured and halt.
+	;
+
+	set $ztrap=""
+	if $data(^httpm("conf","log")) do
+	.	new file,old
+	.	set old=$io
+	.	set file=^httpm("conf","log")
+	.	open file:(append:nofixed:wrap:noreadonly:chset="M")
+	.	use file
+	.	write !,"Error at "_$horolog,!,$zstatus,!
+	.	zshow "SDV"
+	.	use old
+	.	close file
+	halt
