@@ -43,10 +43,11 @@ case "$1" in
 		checkpid
 		if [ "0" = "$status" ] ; then
 			echo "$progname is already running."
+		else
+			rm -f $pid
+			TZ="Europe/London" nohup $gtm_dist/mumps -run start^httpm < /dev/null > /dev/null 2>&1 &
+			echo $! > $pid
 		fi
-		rm -f $pid
-		TZ="Europe/London" nohup $gtm_dist/mumps -run start^httpm < /dev/null > /dev/null 2>&1 &
-		echo $! > $pid
 		;;
 	stop)
 		echo "Stoping $progname."

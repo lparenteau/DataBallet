@@ -91,7 +91,7 @@ start()
 	do conf
 	new socket,key,handle
 	set socket="httpm"
-	open socket:(ZLISTEN=^httpm("conf","listen")_":TCP":attach="httpm"):30:"SOCKET"
+	open socket:(ZLISTEN=^httpm("conf","listen")_":TCP":znoff:zdelay:zbfsize=2048:zibfsize=2048:attach="httpm"):30:"SOCKET"
 	use socket
 	write /listen(5)
 	for  do
@@ -116,7 +116,7 @@ serve()
 	set eol=$char(13)_$char(10)
 	set delim=$char(10)
 	set timeout=10
-	use $io:(nowrap:znodelay:delim=delim)
+	use $io:(nowrap:delim=delim:znoff:zdelay:zbfsize=2048:zibfsize=2048)
 	read line:timeout
 	if $test,'$zeof do
 	.	set $x=0
