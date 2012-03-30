@@ -4,27 +4,19 @@ HTTP server developed using GT.M.
 
 ## Configuring it
 
-### User configuration
+The following globals are required.
 
-The following globals are required (some configuration utility will goes in eventually).
-
-	^httpm("conf","root")		:	Fullpath to document root.  Example : "/var/www/localhost/htdocs/"
-	^httpm("conf","index")		:	Default file name if a path is requested.  Example : "index.html"
-	^httpm("conf","listen")		:	Port to listen on.  Example : 8080
-	^httpm("conf","host")		:	Server's hostname (or virtual hostname).  Example : "localhost"
-	^httpm("conf","timezone")	:	Server's timezone.  Example : "EDT"
-
-The following globals are recommended, but not required.
-
-	^httpm("conf","log")		:	Fullpath and file name for error log.  Example : "/tmp/httpm.log"
-	^httpm("conf","server")		:	Server identification string.  Example : "httpm"
+	^httpm("conf","root")		:	Fullpath to document root.  Default : "/var/www/localhost/htdocs/"
+	^httpm("conf","index")		:	Default file name if a path is requested.  Default : "index.html"
+	^httpm("conf","listen")		:	Port to listen on.  Default : 8080
+	^httpm("conf","log")		:	Fullpath and file name for error log.  Default : "/tmp/httpm.log"
+	^httpm("conf","server")		:	Server identification string.  Default : "httpm"
 
 ## Starting the server
 
-Start the server by executing stat^httpm.
-
-	$gtm_dist/mumps -run start^httpm
+Start the server by executing `./script/httpm.sh start`.
 
 ## Stoping the server
 
-To stop the server, press CTRL-C in the terminal where the server is running then `halt` it or use `$gtm_dist/mupip stop <pid>`.
+Stop the server by executing `./script/httpm.sh stop`.
+
