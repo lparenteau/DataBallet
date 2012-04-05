@@ -64,10 +64,16 @@ conf()
 	set ^httpm("status","417")="Expectation Failed"
 	set ^httpm("status","500")="Internal Server Error"
 	set ^httpm("status","501")="Not Implemented"
+	set ^httpm("status","501","data")="<html><head><title>501 : Functionnality Not Implemented</title></head><body><h1>501 : Functionnality Not Implemented</h1></body></html>"                            
+	set ^httpm("status","501","ct")="text/html"                                                                                                                                                            
+	set ^httpm("status","501","cl")=$zlength(^httpm("status","501","data"))
 	set ^httpm("status","502")="Bad Gateway"
 	set ^httpm("status","503")="Service Unavailable"
 	set ^httpm("status","504")="Gateway Timeout"
 	set ^httpm("status","505")="HTTP Version Not Supported"
+	set ^httpm("status","505","data")="<html><head><title>505 : HTTP Version Not Supported</title></head><body><h1>505 : HTTP Version Not Supported</h1></body></html>"
+	set ^httpm("status","505","ct")="text/html"
+	set ^httpm("status","505","cl")=$zlength(^httpm("status","505","data"))
 
 	; Content-types mapping
 	set ^httpm("ct",".htm")="text/html"
@@ -87,21 +93,32 @@ start()
 	;
 	; Start the HTTP server.
 	;
-	set $ZTRAP="do errhandler"
+	set $ZTRAP="do errhandler^httpm"
 	do conf
-	new socket,key,handle
+	new socket,key,handle,p,socketfd
 	set socket="httpm"
 	open socket:(ZLISTEN=^httpm("conf","listen")_":TCP":znoff:zdelay:zbfsize=2048:zibfsize=2048:attach="httpm"):30:"SOCKET"
 	use socket
 	write /listen(5)
+	; When a connection will be made and the connected socket created, it will use the next number, so we can use that to
+	; redirect stdin and stdout of the spawned mumps process so it is connected to that new socket.  This is needed until GT.M
+	; support passing sockets to other processes directly.  Since the pipe device will create another two file descriptors,
+	; the socket we want is actually the 3rd one at the end of the list.
+	set p="ls"
+	open p:(command="ls -1 /proc/"_$job_"/fd/ | tail -n 3 | head -n 1")::"PIPE"
+	use p
+	read socketfd
+	close p
+	use socket
+	set socketfd=socketfd+1
 	for  do
 	.	set key=""
 	.	for  do  quit:key'=""
 	.	.	write /wait(1)
 	.	.	set key=$key
-	.	; Spawn a new process to handle the connection then close the connected socket as we won't use it from here.
 	.	set handle=$piece(key,"|",2)
-	.	zsystem "$gtm_dist/mumps -run serve^httpm <&7 >&7 2>/dev/null &"
+	.	; Spawn a new process to handle the connection then close the connected socket as we won't use it from here.
+	.	zsystem "$gtm_dist/mumps -run serve^httpm <&"_socketfd_" >&"_socketfd_" 2>>"_^httpm("conf","log")_" &"
 	.	close socket:(socket=handle)
 	.	use socket
 	close socket
@@ -111,7 +128,7 @@ serve()
 	;
 	; Server web page(s) to a connected client.
 	;
-	set $ZTRAP="do errhandler"
+	set $ZTRAP="do errhandler^httpm"
 	new line,eol,delim,connection
 	set eol=$char(13)_$char(10)
 	set delim=$char(10)
@@ -123,7 +140,8 @@ serve()
 	.	set connection("httpver")=$$gethttpver^request(line)
 	.	if connection("httpver")="HTTP/1.1" set connection("connection")="CLOSE" do serve11(line) if 1
 	.	else  if connection("httpver")="HTTP/1.0" do serve10(line) if 1
-	.	else  if connection("httpver")="" do serve09(line)
+	.	else  if connection("httpver")="" do serve09(line) if 1
+	.	else  do senderr^response("505") quit
 	quit
 
 serve09(line)
@@ -140,7 +158,7 @@ serve09(line)
 
 	; Extract the Request-URI from the 1st line.
 	new file
-	set file=$$parseuri^request(line)
+	set file=$$geturi^request(line)	
 
 	; Ensure that the requested file exists and sits inside the document root.
 	set dontcare=$zsearch("")
@@ -164,7 +182,7 @@ serve10(line)
 	if request("method")'="GET",request("method")'="HEAD" do senderr^response("501") quit
 
 	; Extract the Request-URI
-	set request("file")=$$parseuri^request(line)
+	set request("file")=$$geturi^request(line)
 
 	; Ensure that the requested file exists and sits inside the document root.
 	set dontcare=$zsearch("")
@@ -197,7 +215,7 @@ errhandler()
 	; Error handler in case something bad happens.	Will print some debug information to the log file and halt.
 	;
 
-	set $ztrap=""
+	set $ztrap="halt"
 	new file,old
 	set old=$io
 	set file=^httpm("conf","log")

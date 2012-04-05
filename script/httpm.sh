@@ -45,7 +45,8 @@ case "$1" in
 			echo "$progname is already running."
 		else
 			rm -f $pid
-			TZ="Europe/London" nohup $gtm_dist/mumps -run start^httpm < /dev/null > /dev/null 2>&1 &
+			echo "Starting $progname at " `date` >> $log
+			TZ="Europe/London" nohup $gtm_dist/mumps -run start^httpm < /dev/null >> $log 2>&1 &
 			echo $! > $pid
 		fi
 		;;
@@ -54,6 +55,7 @@ case "$1" in
 		checkpid
 		if [ "0" = "$status" ] ; then
 			$gtm_dist/mupip stop `cat $pid`
+			echo "Stopped $progname at " `date` >> $log
 		else
 			echo "$progname is not running."
 		fi
