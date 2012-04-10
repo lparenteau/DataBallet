@@ -28,16 +28,16 @@ senderr(status)
 	.	write eol_^httpm("status",status,"data")
 	quit
 
-sendresphdr(file)
+sendresphdr()
 	;
-	; Send the response header for the supplied file
+	; Send the response header for the current request.
 	;
 	new ext,ct,old,cmd,length,curdate,expdate,lastmod,buf
 	set curdate=$horolog
 	do sendstatus("200")
 
 	; Get and send content-type
-	set ext=$zparse(file,"TYPE")
+	set ext=$zparse(request("file"),"TYPE")
 	if $zlength(ext),$data(^httpm("ct",ext)) set ct=^httpm("ct",ext)
 	else  set ct="text/plain"
 	write "Content-Type: "_ct_eol
@@ -45,7 +45,7 @@ sendresphdr(file)
 	; Get and send content-length
 	set old=$io
 	set cmd="cmd"
-	open cmd:(command="du -b "_file:readonly)::"PIPE"
+	open cmd:(command="du -b "_request("file"):readonly)::"PIPE"
 	use cmd
 	read length
 	close cmd
@@ -57,7 +57,7 @@ sendresphdr(file)
 	write "Expires: "_$zdate(expdate,"DAY, DD MON YEAR 24:60:SS ")_"GMT"_eol
 
 	; Send Last-Modified header
-	open cmd:(command="stat -c %y "_file:readonly)::"PIPE"
+	open cmd:(command="stat -c %y "_request("file"):readonly)::"PIPE"
 	use cmd
 	read buf
 	close cmd
@@ -65,15 +65,15 @@ sendresphdr(file)
 	set lastmod=$$CDN^%H($zextract(buf,6,7)_"/"_$zextract(buf,9,10)_"/"_$zextract(buf,1,4))_","_$$CTN^%H($zextract(buf,12,19))
 	write "Last-Modified: "_$zdate(lastmod,"DAY, DD MON YEAR 24:60:SS ")_"GMT"_eol
 
-	do:connection("httpver")="HTTP/1.1" sendresphdr11(file)
+	do:connection("httpver")="HTTP/1.1" sendresphdr11()
 
 	; HTTP mandate a blank line between headers and content.
 	write eol
 	quit
 
-sendresphdr11(file)
+sendresphdr11()
 	;
-	; Send HTTP/1.1 specific response headers for the supplied file
+	; Send HTTP/1.1 specific response headers for the current request.
 	;
 	new old,cmd,md5sum
 
@@ -86,7 +86,7 @@ sendresphdr11(file)
 	; Get and send Content-MD5
 	set old=$io
 	set cmd="cmd"
-	open cmd:(command="md5sum "_file:readonly)::"PIPE"
+	open cmd:(command="md5sum "_request("file"):readonly)::"PIPE"
 	use cmd
 	read md5sum#32
 	close cmd
@@ -105,7 +105,7 @@ sendstatus(status)
 	if '$data(curdate) new curdate set curdate=$horolog
 	write connection("httpver")_" "_status_" "_^httpm("status",status)_eol
 	write "Date: "_$zdate(curdate,"DAY, DD MON YEAR 24:60:SS ")_"GMT"_eol
-	write:$data(^httpm("conf","server")) "Server: "_^httpm("conf","server")_eol
+	write "Server: "_conf("serverstring")_eol
 	quit
 
 sendfile(file)

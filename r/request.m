@@ -35,8 +35,8 @@ geturi(line)
 	; The resulting file is returned to the caller.
 	;
 	new file
-	set file=$zparse(^httpm("conf","root")_$ztranslate($zpiece(line," ",2),$char(13)))
-	if $zparse(file,"DIRECTORY")=file set file=file_^httpm("conf","index")
+	set file=$zparse(conf("docroot")_$ztranslate($zpiece(line," ",2),$char(13)))
+	if $zparse(file,"DIRECTORY")=file set file=file_conf("index")
 	quit file
 
 parsehdrs(line)

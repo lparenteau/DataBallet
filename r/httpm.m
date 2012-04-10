@@ -22,7 +22,7 @@ conf()
 	;
 
 	; User configuration.
-	do conf^userconf
+	do envconf
 
 	; HTTP status codes
 	set ^httpm("status","100")="Continue"
@@ -85,7 +85,18 @@ conf()
 	set ^httpm("ct",".jpeg")="image/jpeg"
 	set ^httpm("ct",".gif")="image/gif"
 	set ^httpm("ct",".png")="image/png"
-	set ^httpm("serverstring")="httpm"
+
+	quit
+
+envconf()
+	;
+	; Configuration from environment variable
+	;
+	set conf("serverstring")=$ztrnlnm("httpm_server","","","","","VALUE")
+	set conf("listenon")=$ztrnlnm("httpm_port","","","","","VALUE")
+	set conf("docroot")=$ztrnlnm("httpm_docroot","","","","","VALUE")
+	set conf("index")=$ztrnlnm("httpm_index","","","","","VALUE")
+	set conf("errorlog")=$ztrnlnm("httpm_errorlog","","","","","VALUE")
 
 	quit
 
@@ -97,7 +108,7 @@ start()
 	do conf
 	new socket,key,handle,p,socketfd
 	set socket="httpm"
-	open socket:(ZLISTEN=^httpm("conf","listen")_":TCP":znoff:zdelay:zbfsize=2048:zibfsize=2048:attach="httpm"):30:"SOCKET"
+	open socket:(ZLISTEN=conf("listenon")_":TCP":znoff:zdelay:zbfsize=2048:zibfsize=2048:attach="httpm"):30:"SOCKET"
 	use socket
 	write /listen(5)
 	; When a connection will be made and the connected socket created, it will use the next number, so we can use that to
@@ -118,7 +129,7 @@ start()
 	.	.	set key=$key
 	.	set handle=$piece(key,"|",2)
 	.	; Spawn a new process to handle the connection then close the connected socket as we won't use it from here.
-	.	zsystem "$gtm_dist/mumps -run serve^httpm <&"_socketfd_" >&"_socketfd_" 2>>"_^httpm("conf","log")_" &"
+	.	zsystem "$gtm_dist/mumps -run serve^httpm <&"_socketfd_" >&"_socketfd_" 2>>"_conf("errorlog")_" &"
 	.	close socket:(socket=handle)
 	.	use socket
 	close socket
@@ -129,6 +140,7 @@ serve()
 	; Server web page(s) to a connected client.
 	;
 	set $ZTRAP="do errhandler^httpm"
+	do envconf
 	new line,eol,delim,connection
 	set eol=$char(13)_$char(10)
 	set delim=$char(10)
@@ -163,7 +175,7 @@ serve09(line)
 	; Ensure that the requested file exists and sits inside the document root.
 	set dontcare=$zsearch("")
 	quit:$zsearch(file)=""
-	quit:$zextract(file,0,$zlength(^httpm("conf","root")))'=^httpm("conf","root")
+	quit:$zextract(file,0,$zlength(conf("docroot")))'=conf("docroot")
 
 	do sendfile^response(file)
 
@@ -187,7 +199,7 @@ serve10(line)
 	; Ensure that the requested file exists and sits inside the document root.
 	set dontcare=$zsearch("")
 	if $zsearch(request("file"))="" do senderr^response("404") quit
-	if $zextract(request("file"),0,$zlength(^httpm("conf","root")))'=^httpm("conf","root") do senderr^response("404") quit
+	if $zextract(request("file"),0,$zlength(conf("docroot")))'=conf("docroot") do senderr^response("404") quit
 
 	; Read all request
 	for  read line:timeout quit:'$test  quit:line=$char(13)  quit:$zeof  do parsehdrs^request(line)
@@ -195,7 +207,7 @@ serve10(line)
 	quit:$zeof
 
 	; Send response headers
-	do sendresphdr^response(request("file"))
+	do sendresphdr^response()
 
 	; Send the content only if it isn't a HEAD request
 	do:request("method")'="HEAD" sendfile^response(request("file"))
@@ -218,7 +230,7 @@ errhandler()
 	set $ztrap="halt"
 	new file,old
 	set old=$io
-	set file=^httpm("conf","log")
+	set file=conf("errorlog")
 	open file:(append:nofixed:wrap:noreadonly:chset="M")
 	use file
 	write "Error at "_$horolog,!,$zstatus,!
