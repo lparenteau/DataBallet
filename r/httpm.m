@@ -150,15 +150,15 @@ serve()
 	if $test,'$zeof do
 	.	set $x=0
 	.	set connection("httpver")=$$gethttpver^request(line)
-	.	if connection("httpver")="HTTP/1.1" set connection("connection")="CLOSE" do serve11(line) if 1
-	.	else  if connection("httpver")="HTTP/1.0" do serve10(line) if 1
+	.	if connection("httpver")="HTTP/1.1" set connection("connection")="KEEP-ALIVE" do keepalive(line) if 1
+	.	else  if connection("httpver")="HTTP/1.0" set connection("connection")="CLOSE" do keepalive(line) if 1
 	.	else  if connection("httpver")="" do serve09(line) if 1
 	.	else  do senderr^response("505") quit
 	quit
 
 serve09(line)
 	;
-	; Serve HTTP/0.9 requests.
+	; Serve an HTTP/0.9 request.
 	;
 	; HTTP/0.9 supports only simple-request and simple-response :
 	; Simple-Request  = "GET" SP Request-URI CRLF
@@ -181,12 +181,13 @@ serve09(line)
 
 	quit
 
-serve10(line)
+servesinglereq(line)
 	;
-	; Serve HTTP/1.0 requests.
+	; Serve a single HTTP/1.0 or HTTP/1.1 request.
 	;
-	new request
+	new request,response
 
+	set response("status")=""
 	; Extract method
 	set request("method")=$$getmethod^request(line)
 
@@ -209,17 +210,17 @@ serve10(line)
 	; Send response headers
 	do sendresphdr^response()
 
-	; Send the content only if it isn't a HEAD request
-	do:request("method")'="HEAD" sendfile^response(request("file"))
+	; Send the content only if it isn't a HEAD request and it is a 200 OK.
+	if request("method")'="HEAD",$data(response("status")),response("status")=200 do sendfile^response(request("file"))
 
 	quit
 
-serve11(line)
+keepalive(line)
 	;
-	; Server HTTP/1.1 requests
+	; Handle keep-alive connections for HTTP/1.0 and HTTP/1.1.
 	;
 
-	for  do serve10(line) quit:connection("connection")'="KEEP-ALIVE"  read line:timeout quit:'$test  quit:$zeof
+	for  do servesinglereq(line) quit:connection("connection")'="KEEP-ALIVE"  read line:timeout quit:'$test  quit:$zeof
 	quit
 
 errhandler()
