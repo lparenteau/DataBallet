@@ -73,6 +73,15 @@ sendresphdr()
 	if connection("httpver")="HTTP/1.1" write "Transfer-Encoding: chunked",eol if 1
 	else  write "Content-Length: ",$zpiece(length,$char(9),1),eol
 
+	; Let the client know which compression will be used, if any.
+	if $data(request("ACCEPT-ENCODING")) do
+	.	; Send Vary header
+	.	write "Vary: Accept-Encoding"_eol
+	.	if $data(^httpm("compressible",ct)) do
+	.	.	set:request("ACCEPT-ENCODING")["compress" response("encoding")="compress"
+	.	.	set:request("ACCEPT-ENCODING")["gzip" response("encoding")="gzip"
+	.	.	write:$data(response("encoding")) "Content-Encoding: "_response("encoding")_eol
+
 	; Send Expires header
 	set expdate=$zpiece(curdate,",",1)+1_","_$zpiece(curdate,",",2)
 	write "Expires: "_$zdate(expdate,"DAY, DD MON YEAR 24:60:SS ")_"GMT"_eol
@@ -107,13 +116,17 @@ sendstatus(status)
 	write "Server: "_conf("serverstring")_eol
 	quit
 
-sendfile(file)
+sendfile(filename)
 	;
-	; Read all content of a file and send it.
+	; Read all content of a file and send it.  If compression was advertised, compress the file before sending it.
 	;
-	new old
+	new old,line,file
 	set old=$IO
-	open file:(fixed:wrap:readonly:chset="M")
+	if $data(response("encoding")) do
+	.	set file="cmd"
+	.	open file:(command=response("encoding")_" -c "_filename:fixed:wrap:readonly)::"PIPE"
+	.	if 1
+	else  set file=filename open file:(fixed:wrap:readonly:chset="M")
 	for  use file read line:timeout quit:'$test  quit:$zeof  do
 	.	use old
 	.	write:connection("httpver")="HTTP/1.1" $$FUNC^%DH($zlength(line),1),eol

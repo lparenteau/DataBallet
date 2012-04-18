@@ -80,11 +80,19 @@ conf()
 	set ^httpm("ct",".html")="text/html"
 	set ^httpm("ct",".css")="text/css"
 	set ^httpm("ct",".xml")="text/xml"
+	set ^httpm("ct",".txt")="text/plain"
 	set ^httpm("ct",".js")="application/javascript"
 	set ^httpm("ct",".jpg")="image/jpeg"
 	set ^httpm("ct",".jpeg")="image/jpeg"
 	set ^httpm("ct",".gif")="image/gif"
 	set ^httpm("ct",".png")="image/png"
+
+	;
+	set ^httpm("compressible","text/html")=""
+	set ^httpm("compressible","text/css")=""
+	set ^httpm("compressible","text/xml")=""
+	set ^httpm("compressible","text/plain")=""
+	set ^httpm("compressible","application/javascript")=""
 
 	quit
 
