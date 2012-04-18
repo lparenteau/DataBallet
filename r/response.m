@@ -38,10 +38,11 @@ sendresphdr()
 	; Get file last modified data, content-length, and md5sum.
 	set old=$io
 	set cmd="cmd"
-	open cmd:(command="du -b "_request("file"):readonly)::"PIPE"
-	use cmd
-	read length
-	close cmd
+	if connection("httpver")'="HTTP/1.1" do
+	.	open cmd:(command="du -b "_request("file"):readonly)::"PIPE"
+	.	use cmd
+	.	read length
+	.	close cmd
 	open cmd:(command="stat -c %y "_request("file"):readonly)::"PIPE"
 	use cmd
 	read buf
@@ -68,8 +69,9 @@ sendresphdr()
 	else  set ct="text/plain"
 	write "Content-Type: "_ct_eol
 
-	; Send content-length
-	write "Content-Length: ",$zpiece(length,$char(9),1),eol
+	; Send chunked-encoding for HTTP/1.1, content-length for everyone else
+	if connection("httpver")="HTTP/1.1" write "Transfer-Encoding: chunked",eol if 1
+	else  write "Content-Length: ",$zpiece(length,$char(9),1),eol
 
 	; Send Expires header
 	set expdate=$zpiece(curdate,",",1)+1_","_$zpiece(curdate,",",2)
@@ -114,9 +116,12 @@ sendfile(file)
 	open file:(fixed:wrap:readonly:chset="M")
 	for  use file read line:timeout quit:'$test  quit:$zeof  do
 	.	use old
+	.	write:connection("httpver")="HTTP/1.1" $$FUNC^%DH($zlength(line),1),eol
 	.	write line
+	.	write:connection("httpver")="HTTP/1.1" eol
 	.	set $x=0
 	close file
 	use old
+	write:connection("httpver")="HTTP/1.1" "0",eol,eol
 	quit
 
