@@ -69,10 +69,6 @@ sendresphdr()
 	else  set ct="text/plain"
 	write "Content-Type: "_ct_eol
 
-	; Send chunked-encoding for HTTP/1.1, content-length for everyone else
-	if connection("httpver")="HTTP/1.1" write "Transfer-Encoding: chunked",eol if 1
-	else  write "Content-Length: ",$zpiece(length,$char(9),1),eol
-
 	; Let the client know which compression will be used, if any.
 	if $data(request("ACCEPT-ENCODING")) do
 	.	; Send Vary header
@@ -81,6 +77,21 @@ sendresphdr()
 	.	.	set:request("ACCEPT-ENCODING")["compress" response("encoding")="compress"
 	.	.	set:request("ACCEPT-ENCODING")["gzip" response("encoding")="gzip"
 	.	.	write:$data(response("encoding")) "Content-Encoding: "_response("encoding")_eol
+
+	; Send chunked-encoding for HTTP/1.1, content-length for everyone else
+	if connection("httpver")="HTTP/1.1" do
+	.	new encoding
+	.	set encoding="chunked"
+	.	; If TE advertise compression and we are not already using it, check if we can and advertise it if used.
+	.	if '$data(response("encoding")),$data(request("TE")) do
+	.	.	write "Vary: TE"_eol
+	.	.	if $data(^httpm("compressible",ct)) do
+	.	.	.	set:request("TE")["compress" response("encoding")="compress"
+	.	.	.	set:request("TE")["gzip" response("encoding")="gzip"
+	.	.	.	set:$data(response("encoding")) encoding=encoding_", "_response("encoding")
+	.	write "Transfer-Encoding: "_encoding_eol
+	.	if 1
+	else  write "Content-Length: ",$zpiece(length,$char(9),1),eol
 
 	; Send Expires header
 	set expdate=$zpiece(curdate,",",1)+1_","_$zpiece(curdate,",",2)
