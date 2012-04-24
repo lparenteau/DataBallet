@@ -87,7 +87,7 @@ conf()
 	set ^httpm("ct",".gif")="image/gif"
 	set ^httpm("ct",".png")="image/png"
 
-	;
+	; Define compressible content-type
 	set ^httpm("compressible","text/html")=""
 	set ^httpm("compressible","text/css")=""
 	set ^httpm("compressible","text/xml")=""
@@ -113,6 +113,7 @@ start()
 	; Start the HTTP server.
 	;
 	set $ZTRAP="do errhandler^httpm"
+	new conf
 	do conf
 	new socket,key,handle,p,socketfd
 	set socket="httpm"
@@ -148,6 +149,7 @@ serve()
 	; Server web page(s) to a connected client.
 	;
 	set $ZTRAP="do errhandler^httpm"
+	new conf
 	do envconf
 	new line,eol,delim,connection
 	set eol=$char(13)_$char(10)
@@ -172,20 +174,22 @@ serve09(line)
 	; Simple-Request  = "GET" SP Request-URI CRLF
 	; Simple-Response = [ Entity-Body ]
 	;
+	new request,response
+
+	; Extract method
+	set request("method")=$$getmethod^request(line)
 
 	; HTTP/0.9 only allow the GET method.
-	quit:$$getmethod^request(line)'="GET"
+	quit:request("method")'="GET"
 
 	; Extract the Request-URI from the 1st line.
-	new file
-	set file=$$geturi^request(line)	
+	set request("file")=$$geturi^request(line)
 
-	; Ensure that the requested file exists and sits inside the document root.
-	set dontcare=$zsearch("")
-	quit:$zsearch(file)=""
-	quit:$zextract(file,0,$zlength(conf("docroot")))'=conf("docroot")
+	; Route the request to the correct handler.  This will populate the response variable.
+	do route^routing()
 
-	do sendfile^response(file)
+	; Send the content if everything is fine.
+	do:response("status")="200" send^response()
 
 	quit
 
@@ -195,7 +199,6 @@ servesinglereq(line)
 	;
 	new request,response
 
-	set response("status")=""
 	; Extract method
 	set request("method")=$$getmethod^request(line)
 
@@ -205,21 +208,19 @@ servesinglereq(line)
 	; Extract the Request-URI
 	set request("file")=$$geturi^request(line)
 
-	; Ensure that the requested file exists and sits inside the document root.
-	set dontcare=$zsearch("")
-	if $zsearch(request("file"))="" do senderr^response("404") quit
-	if $zextract(request("file"),0,$zlength(conf("docroot")))'=conf("docroot") do senderr^response("404") quit
-
 	; Read all request
 	for  read line:timeout quit:'$test  quit:line=$char(13)  quit:$zeof  do parsehdrs^request(line)
 	quit:'$test
 	quit:$zeof
 
+	; Route the request to the correct handler.  This will populate the response variable.
+	do route^routing()
+
 	; Send response headers
 	do sendresphdr^response()
 
 	; Send the content only if it isn't a HEAD request and it is a 200 OK.
-	if request("method")'="HEAD",$data(response("status")),response("status")=200 do sendfile^response(request("file"))
+	if request("method")'="HEAD",response("status")="200" do send^response()
 
 	quit
 
