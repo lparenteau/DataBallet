@@ -30,14 +30,9 @@ getmethod(line)
 
 geturi(line)
 	;
-	; Parse the requested URI and get the requested file from it.
-	; Use a default file name in case a directory is requested.
-	; The resulting file is returned to the caller.
+	; Parse the requested URI and get the requested entity from it.
 	;
-	new file
-	set file=$zparse(conf("docroot")_$ztranslate($zpiece(line," ",2),$char(13)))
-	if $zparse(file,"DIRECTORY")=file set file=file_conf("index")
-	quit file
+	quit $ztranslate($zpiece(line," ",2),$char(13))
 
 parsehdrs(line)
 	;

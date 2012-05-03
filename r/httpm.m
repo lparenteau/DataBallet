@@ -102,7 +102,6 @@ envconf()
 	;
 	set conf("serverstring")=$ztrnlnm("httpm_server","","","","","VALUE")
 	set conf("listenon")=$ztrnlnm("httpm_port","","","","","VALUE")
-	set conf("docroot")=$ztrnlnm("httpm_docroot","","","","","VALUE")
 	set conf("index")=$ztrnlnm("httpm_index","","","","","VALUE")
 	set conf("errorlog")=$ztrnlnm("httpm_errorlog","","","","","VALUE")
 
@@ -163,7 +162,7 @@ serve()
 	.	if connection("httpver")="HTTP/1.1" set connection("connection")="KEEP-ALIVE" do keepalive(line) if 1
 	.	else  if connection("httpver")="HTTP/1.0" set connection("connection")="CLOSE" do keepalive(line) if 1
 	.	else  if connection("httpver")="" do serve09(line) if 1
-	.	else  do senderr^response("505") quit
+	.	else  do senderr^response("505")
 	quit
 
 serve09(line)
@@ -183,7 +182,7 @@ serve09(line)
 	quit:request("method")'="GET"
 
 	; Extract the Request-URI from the 1st line.
-	set request("file")=$$geturi^request(line)
+	set request("uri")=$$geturi^request(line)
 
 	; Route the request to the correct handler.  This will populate the response variable.
 	do route^routing()
@@ -206,7 +205,7 @@ servesinglereq(line)
 	if request("method")'="GET",request("method")'="HEAD" do senderr^response("501") quit
 
 	; Extract the Request-URI
-	set request("file")=$$geturi^request(line)
+	set request("uri")=$$geturi^request(line)
 
 	; Read all request
 	for  read line:timeout quit:'$test  quit:line=$char(13)  quit:$zeof  do parsehdrs^request(line)
