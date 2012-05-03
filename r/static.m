@@ -23,6 +23,9 @@ handle(rule) ;
 	; is used if a directory is requested.
 	;
 
+	; Support GET and HEAD methods
+	if request("method")'="GET",request("method")'="HEAD" set response("status")="501" quit
+
 	; Ensure that the requested file exists and sits inside the document root.
 	new dontcare,file
 	set file=$zparse(rule_request("uri"))
@@ -60,7 +63,7 @@ handle(rule) ;
 	.	; Notice that in case the below condition is false, the else on the next line will be executed.
 	.	if lastmod'>ifmod set response("status")="304"
 	else  if $data(request("IF-NONE-MATCH")),md5sum=request("IF-NONE-MATCH") set response("status")="304"
-	else  set response("status")="200" set response("file")=file
+	else  set response("status")="200" set:request("method")'="HEAD" response("file")=file
 
 	; Get and send content-type
 	set ext=$zparse(file,"TYPE")

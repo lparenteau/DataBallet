@@ -196,13 +196,10 @@ servesinglereq(line)
 	;
 	; Serve a single HTTP/1.0 or HTTP/1.1 request.
 	;
-	new request,response
+	new request,response,length
 
 	; Extract method
 	set request("method")=$$getmethod^request(line)
-
-	; Currently only support GET and HEAD methods
-	if request("method")'="GET",request("method")'="HEAD" do senderr^response("501") quit
 
 	; Extract the Request-URI
 	set request("uri")=$$geturi^request(line)
@@ -212,14 +209,22 @@ servesinglereq(line)
 	quit:'$test
 	quit:$zeof
 
+	; If the request advertised a body, read it.
+	if $data(request("CONTENT-LENGTH")) do
+	.	set request("content")=""
+	.	set length=request("CONTENT-LENGTH")
+	.	use $io:(nodelim)
+	.	for  read line#length:timeout quit:'$test  quit:$zeof  set request("content")=request("content")_line  set length=length-$zlength(line)  quit:length<1
+	.	use $io:(delim=delim)
+
 	; Route the request to the correct handler.  This will populate the response variable.
 	do route^routing()
 
 	; Send response headers
 	do sendresphdr^response()
 
-	; Send the content only if it isn't a HEAD request and it is a 200 OK.
-	if request("method")'="HEAD",response("status")="200" do send^response()
+	; Send response content
+	do send^response()
 
 	quit
 
