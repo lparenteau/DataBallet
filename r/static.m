@@ -40,7 +40,7 @@ handle(rule) ;
 	; Get file last modified data, content-length, and md5sum.
 	set old=$io
 	set cmd="cmd"
-	if connection("httpver")'="HTTP/1.1" do
+	if connection("HTTPVER")'="HTTP/1.1" do
 	.	open cmd:(command="du -b "_file:readonly)::"PIPE"
 	.	use cmd
 	.	read length
@@ -56,40 +56,40 @@ handle(rule) ;
 	use old
 	set lastmod=$$CDN^%H($zextract(buf,6,7)_"/"_$zextract(buf,9,10)_"/"_$zextract(buf,1,4))_","_$$CTN^%H($zextract(buf,12,19))
 
-	if $data(request("if-modified-since")) do
+	if $data(request("headers","IF-MODIFIED-SINCE")) do
 	.	new ifmod
-	.	set ifmod=$$FUNC^%DATE($zextract(request("IF-MODIFIED-SINCE"),6,7)_"/"_$zextract(request("IF-MODIFIED-SINCE"),9,11)_"/"_$zextract(request("IF-MODIFIED-SINCE"),13,16))_","_$$CTN^%H($zextract(request("IF-MODIFIED-SINCE"),18,25))
+	.	set ifmod=$$FUNC^%DATE($zextract(request("headers","IF-MODIFIED-SINCE"),6,7)_"/"_$zextract(request("headers","IF-MODIFIED-SINCE"),9,11)_"/"_$zextract(request("headers","IF-MODIFIED-SINCE"),13,16))_","_$$CTN^%H($zextract(request("headers","IF-MODIFIED-SINCE"),18,25))
 	.	; If the file's last modification date is older than the if-modified-since date from the request header, send a "304 Not Modified" reponse.
 	.	; Notice that in case the below condition is false, the else on the next line will be executed.
 	.	if lastmod'>ifmod set response("status")="304"
-	else  if $data(request("IF-NONE-MATCH")),md5sum=request("IF-NONE-MATCH") set response("status")="304"
+	else  if $data(request("headers","IF-NONE-MATCH")),md5sum=request("headers","IF-NONE-MATCH") set response("status")="304"
 	else  set response("status")="200" set:request("method")'="HEAD" response("file")=file
 
 	; Get and send content-type
 	set ext=$zparse(file,"TYPE")
-	if $zlength(ext),$data(^httpm("ct",ext)) set ct=^httpm("ct",ext)
+	if $zlength(ext),$data(conf("ct",ext)) set ct=conf("ct",ext)
 	else  set ct="text/plain"
 	set response("headers","Content-Type")=ct
 
 	; Let the client know which compression will be used, if any.
-	if $data(request("ACCEPT-ENCODING")) do
+	if $data(request("headers","ACCEPT-ENCODING")) do
 	.	; Send Vary header
 	.	set response("headers","Vary")="Accept-Encoding"
-	.	if $data(^httpm("compressible",ct)) do
-	.	.	set:request("ACCEPT-ENCODING")["compress" response("encoding")="compress"
-	.	.	set:request("ACCEPT-ENCODING")["gzip" response("encoding")="gzip"
+	.	if $data(conf("compressible",ct)) do
+	.	.	set:request("headers","ACCEPT-ENCODING")["compress" response("encoding")="compress"
+	.	.	set:request("headers","ACCEPT-ENCODING")["gzip" response("encoding")="gzip"
 	.	.	set:$data(response("encoding")) response("headers","Content-Encoding")=response("encoding")
 	
 	; Send chunked-encoding for HTTP/1.1, content-length for everyone else
-	if connection("httpver")="HTTP/1.1" do
+	if connection("HTTPVER")="HTTP/1.1" do
 	.	new encoding
 	.	set encoding="chunked"
 	.	; If TE advertise compression and we are not already using it, check if we can and advertise it if used.
-	.	if '$data(response("encoding")),$data(request("TE")) do
+	.	if '$data(response("encoding")),$data(request("headers","TE")) do
 	.	.	write "Vary: TE"_eol
-	.	.	if $data(^httpm("compressible",ct)) do
-	.	.	.	set:request("TE")["compress" response("encoding")="compress"
-	.	.	.	set:request("TE")["gzip" response("encoding")="gzip"
+	.	.	if $data(conf("compressible",ct)) do
+	.	.	.	set:request("headers","TE")["compress" response("encoding")="compress"
+	.	.	.	set:request("headers","TE")["gzip" response("encoding")="gzip"
 	.	.	.	set:$data(response("encoding")) encoding=encoding_", "_response("encoding")
 	.	set response("headers","Transfer-Encoding")=encoding
 	.	if 1

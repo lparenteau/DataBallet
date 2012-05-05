@@ -36,13 +36,16 @@ geturi(line)
 
 parsehdrs(line)
 	;
-	; Read and parse a request header.  Will update 'request' and 'connection'.
+	; Read and parse a request header.  Will update 'request' or 'connection'.
 	;
-	new fieldname
-	set fieldname=$$FUNC^%UCASE($zpiece(line," ",1))
-	if fieldname="HOST:" set request("host")=$$FUNC^%UCASE($ztranslate($zpiece(line," ",2),$char(13)))
-	else  if fieldname="CONNECTION:" set connection("connection")=$$FUNC^%UCASE($ztranslate($zpiece(line," ",2),$char(13)))
-	else  set request($ztranslate(fieldname,":"))=$ztranslate($zpiece(line," ",2),$char(13))
+	new fieldname,value
+	set fieldname=$ztranslate($$FUNC^%UCASE($zpiece(line," ",1)),":")
+	set value=$ztranslate($zpiece(line," ",2),$char(13))
+	; Use upper case value for HOST and CONNECTION header field, as those are looked at internally.
+	set:(fieldname="HOST")!(fieldname="CONNECTION") value=$$FUNC^%UCASE(value)
+
+	if fieldname="CONNECTION" set connection(fieldname)=value
+	else  set request("headers",fieldname)=value
 
 	quit
 

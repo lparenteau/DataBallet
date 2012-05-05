@@ -18,7 +18,11 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-configfile="conf/httpm.conf"
+if [ "$2" != "" ] ; then
+	configfile="$2"
+else
+	configfile="conf/httpm.conf"
+fi
 
 if [ ! -f $configfile ] ; then
 	echo "Configuration file does not exist."
@@ -45,7 +49,7 @@ case "$1" in
 			echo "$progname is already running."
 		else
 			rm -f $pid
-			echo "Starting $progname at " `date` >> $log
+			echo "Starting $progname at " `date` " using configfile." >> $log
 			TZ="Europe/London" nohup $gtm_dist/mumps -run start^httpm < /dev/null >> $log 2>&1 &
 			echo $! > $pid
 		fi
@@ -55,7 +59,7 @@ case "$1" in
 		checkpid
 		if [ "0" = "$status" ] ; then
 			$gtm_dist/mupip stop `cat $pid`
-			echo "Stopped $progname at " `date` >> $log
+			echo "Stopped $progname at " `date` " using configfile." >> $log
 		else
 			echo "$progname is not running."
 		fi

@@ -25,9 +25,9 @@ senderr(status)
 	new response
 	set response("status")=status
 
-	if $data(^httpm("status",status,"data")) do
-	.	set response("headers","Content-Type")=^httpm("status",status,"ct")
-	.	set response("headers","Content-Length")=^httpm("status",status,"cl")
+	if $data(conf("status",status,"data")) do
+	.	set response("headers","Content-Type")=conf("status",status,"ct")
+	.	set response("headers","Content-Length")=conf("status",status,"cl")
 
 	; Send response headers
 	do sendresphdr()
@@ -36,7 +36,7 @@ senderr(status)
 	write eol
 
 	; Send error data, if any
-	write:$data(^httpm("status",status,"data")) ^httpm("status",status,"data")
+	write:$data(conf("status",status,"data")) conf("status",status,"data")
 
 	quit
 
@@ -46,7 +46,7 @@ sendresphdr()
 	;
 
 	; Send the status line.
-	write connection("httpver")_" "_response("status")_" "_^httpm("status",response("status"))_eol
+	write connection("HTTPVER")_" "_response("status")_" "_conf("status",response("status"))_eol
 
 	; Send the Server header.
 	write "Server: "_conf("serverstring")_eol
@@ -87,12 +87,12 @@ sendfile(filename)
 	else  set file=filename open file:(fixed:wrap:readonly:chset="M")
 	for  use file read line:timeout quit:'$test  quit:$zeof  do
 	.	use old
-	.	write:connection("httpver")="HTTP/1.1" $$FUNC^%DH($zlength(line),1),eol
+	.	write:connection("HTTPVER")="HTTP/1.1" $$FUNC^%DH($zlength(line),1),eol
 	.	write line
-	.	write:connection("httpver")="HTTP/1.1" eol
+	.	write:connection("HTTPVER")="HTTP/1.1" eol
 	.	set $x=0
 	close file
 	use old
-	write:connection("httpver")="HTTP/1.1" "0",eol,eol
+	write:connection("HTTPVER")="HTTP/1.1" "0",eol,eol
 	quit
 

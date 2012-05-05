@@ -22,7 +22,7 @@ route()	;
 
 	new uri,host,handler
 	set uri=request("uri")
-	set host=$select($data(request("host")):request("host"),1:"*")
+	set host=$select($data(request("headers","HOST")):request("headers","HOST"),1:"*")
 	set:'$data(^httpm("routing",host)) host=$select($data(^httpm("routing","*")):"*",1:"")
 	; Try to locate a handle fhe requested URI on the requested host.
 	for i=$zlength(uri,"/"):-1:1 do  quit:$data(^httpm("routing",host,uri))

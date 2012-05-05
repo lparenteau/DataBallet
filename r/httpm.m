@@ -25,74 +25,74 @@ conf()
 	do envconf
 
 	; HTTP status codes
-	set ^httpm("status","100")="Continue"
-	set ^httpm("status","101")="Switching Protocols"
-	set ^httpm("status","200")="OK"
-	set ^httpm("status","201")="Created"
-	set ^httpm("status","202")="Accepted"
-	set ^httpm("status","203")="Non-Authoritative Information"
-	set ^httpm("status","204")="No Content"
-	set ^httpm("status","205")="Reset Content"
-	set ^httpm("status","206")="Partial Content"
-	set ^httpm("status","300")="Multiple Choices"
-	set ^httpm("status","301")="Moved Permanently"
-	set ^httpm("status","302")="Found"
-	set ^httpm("status","303")="See Other"
-	set ^httpm("status","304")="Not Modified"
-	set ^httpm("status","305")="Use Proxy"
-	set ^httpm("status","307")="Temporary Redirect"
-	set ^httpm("status","400")="Bad Request"
-	set ^httpm("status","401")="Unauthorized"
-	set ^httpm("status","402")="Payment Required"
-	set ^httpm("status","403")="Forbidden"
-	set ^httpm("status","404")="Not Found"
-	set ^httpm("status","404","data")="<html><head><title>404 : Page Not Found</title></head><body><h1>404 : Page Not Found</h1></body></html>"
-	set ^httpm("status","404","ct")="text/html"
-	set ^httpm("status","404","cl")=$zlength(^httpm("status","404","data"))
-	set ^httpm("status","405")="Method Not Allowed"
-	set ^httpm("status","406")="Not Acceptable"
-	set ^httpm("status","407")="Proxy Authentication Required"
-	set ^httpm("status","408")="Request Timeout"
-	set ^httpm("status","409")="Conflict"
-	set ^httpm("status","410")="Gone"
-	set ^httpm("status","411")="Length Required"
-	set ^httpm("status","412")="Precondition Failed"
-	set ^httpm("status","413")="Request Entity Too Large"
-	set ^httpm("status","414")="Request-URI Too Long"
-	set ^httpm("status","415")="Unsupported Media Type"
-	set ^httpm("status","416")="Requested Range Not Satisfiable"
-	set ^httpm("status","417")="Expectation Failed"
-	set ^httpm("status","500")="Internal Server Error"
-	set ^httpm("status","501")="Not Implemented"
-	set ^httpm("status","501","data")="<html><head><title>501 : Functionnality Not Implemented</title></head><body><h1>501 : Functionnality Not Implemented</h1></body></html>"                            
-	set ^httpm("status","501","ct")="text/html"                                                                                                                                                            
-	set ^httpm("status","501","cl")=$zlength(^httpm("status","501","data"))
-	set ^httpm("status","502")="Bad Gateway"
-	set ^httpm("status","503")="Service Unavailable"
-	set ^httpm("status","504")="Gateway Timeout"
-	set ^httpm("status","505")="HTTP Version Not Supported"
-	set ^httpm("status","505","data")="<html><head><title>505 : HTTP Version Not Supported</title></head><body><h1>505 : HTTP Version Not Supported</h1></body></html>"
-	set ^httpm("status","505","ct")="text/html"
-	set ^httpm("status","505","cl")=$zlength(^httpm("status","505","data"))
+	set conf("status","100")="Continue"
+	set conf("status","101")="Switching Protocols"
+	set conf("status","200")="OK"
+	set conf("status","201")="Created"
+	set conf("status","202")="Accepted"
+	set conf("status","203")="Non-Authoritative Information"
+	set conf("status","204")="No Content"
+	set conf("status","205")="Reset Content"
+	set conf("status","206")="Partial Content"
+	set conf("status","300")="Multiple Choices"
+	set conf("status","301")="Moved Permanently"
+	set conf("status","302")="Found"
+	set conf("status","303")="See Other"
+	set conf("status","304")="Not Modified"
+	set conf("status","305")="Use Proxy"
+	set conf("status","307")="Temporary Redirect"
+	set conf("status","400")="Bad Request"
+	set conf("status","401")="Unauthorized"
+	set conf("status","402")="Payment Required"
+	set conf("status","403")="Forbidden"
+	set conf("status","404")="Not Found"
+	set conf("status","404","data")="<html><head><title>404 : Page Not Found</title></head><body><h1>404 : Page Not Found</h1></body></html>"
+	set conf("status","404","ct")="text/html"
+	set conf("status","404","cl")=$zlength(conf("status","404","data"))
+	set conf("status","405")="Method Not Allowed"
+	set conf("status","406")="Not Acceptable"
+	set conf("status","407")="Proxy Authentication Required"
+	set conf("status","408")="Request Timeout"
+	set conf("status","409")="Conflict"
+	set conf("status","410")="Gone"
+	set conf("status","411")="Length Required"
+	set conf("status","412")="Precondition Failed"
+	set conf("status","413")="Request Entity Too Large"
+	set conf("status","414")="Request-URI Too Long"
+	set conf("status","415")="Unsupported Media Type"
+	set conf("status","416")="Requested Range Not Satisfiable"
+	set conf("status","417")="Expectation Failed"
+	set conf("status","500")="Internal Server Error"
+	set conf("status","501")="Not Implemented"
+	set conf("status","501","data")="<html><head><title>501 : Functionnality Not Implemented</title></head><body><h1>501 : Functionnality Not Implemented</h1></body></html>"                            
+	set conf("status","501","ct")="text/html"                                                                                                                                                            
+	set conf("status","501","cl")=$zlength(conf("status","501","data"))
+	set conf("status","502")="Bad Gateway"
+	set conf("status","503")="Service Unavailable"
+	set conf("status","504")="Gateway Timeout"
+	set conf("status","505")="HTTP Version Not Supported"
+	set conf("status","505","data")="<html><head><title>505 : HTTP Version Not Supported</title></head><body><h1>505 : HTTP Version Not Supported</h1></body></html>"
+	set conf("status","505","ct")="text/html"
+	set conf("status","505","cl")=$zlength(conf("status","505","data"))
 
 	; Content-types mapping
-	set ^httpm("ct",".htm")="text/html"
-	set ^httpm("ct",".html")="text/html"
-	set ^httpm("ct",".css")="text/css"
-	set ^httpm("ct",".xml")="text/xml"
-	set ^httpm("ct",".txt")="text/plain"
-	set ^httpm("ct",".js")="application/javascript"
-	set ^httpm("ct",".jpg")="image/jpeg"
-	set ^httpm("ct",".jpeg")="image/jpeg"
-	set ^httpm("ct",".gif")="image/gif"
-	set ^httpm("ct",".png")="image/png"
+	set conf("ct",".htm")="text/html"
+	set conf("ct",".html")="text/html"
+	set conf("ct",".css")="text/css"
+	set conf("ct",".xml")="text/xml"
+	set conf("ct",".txt")="text/plain"
+	set conf("ct",".js")="application/javascript"
+	set conf("ct",".jpg")="image/jpeg"
+	set conf("ct",".jpeg")="image/jpeg"
+	set conf("ct",".gif")="image/gif"
+	set conf("ct",".png")="image/png"
 
 	; Define compressible content-type
-	set ^httpm("compressible","text/html")=""
-	set ^httpm("compressible","text/css")=""
-	set ^httpm("compressible","text/xml")=""
-	set ^httpm("compressible","text/plain")=""
-	set ^httpm("compressible","application/javascript")=""
+	set conf("compressible","text/html")=""
+	set conf("compressible","text/css")=""
+	set conf("compressible","text/xml")=""
+	set conf("compressible","text/plain")=""
+	set conf("compressible","application/javascript")=""
 
 	quit
 
@@ -149,7 +149,7 @@ serve()
 	;
 	set $ZTRAP="do errhandler^httpm"
 	new conf
-	do envconf
+	do conf
 	new line,eol,delim,connection
 	set eol=$char(13)_$char(10)
 	set delim=$char(10)
@@ -158,10 +158,10 @@ serve()
 	read line:timeout
 	if $test,'$zeof do
 	.	set $x=0
-	.	set connection("httpver")=$$gethttpver^request(line)
-	.	if connection("httpver")="HTTP/1.1" set connection("connection")="KEEP-ALIVE" do keepalive(line) if 1
-	.	else  if connection("httpver")="HTTP/1.0" set connection("connection")="CLOSE" do keepalive(line) if 1
-	.	else  if connection("httpver")="" do serve09(line) if 1
+	.	set connection("HTTPVER")=$$gethttpver^request(line)
+	.	if connection("HTTPVER")="HTTP/1.1" set connection("CONNECTION")="KEEP-ALIVE" do keepalive(line) if 1
+	.	else  if connection("HTTPVER")="HTTP/1.0" set connection("CONNECTION")="CLOSE" do keepalive(line) if 1
+	.	else  if connection("HTTPVER")="" do serve09(line) if 1
 	.	else  do senderr^response("505")
 	quit
 
@@ -210,9 +210,9 @@ servesinglereq(line)
 	quit:$zeof
 
 	; If the request advertised a body, read it.
-	if $data(request("CONTENT-LENGTH")) do
+	if $data(request("headers","CONTENT-LENGTH")) do
 	.	set request("content")=""
-	.	set length=request("CONTENT-LENGTH")
+	.	set length=request("headers","CONTENT-LENGTH")
 	.	use $io:(nodelim)
 	.	for  read line#length:timeout quit:'$test  quit:$zeof  set request("content")=request("content")_line  set length=length-$zlength(line)  quit:length<1
 	.	use $io:(delim=delim)
@@ -233,7 +233,7 @@ keepalive(line)
 	; Handle keep-alive connections for HTTP/1.0 and HTTP/1.1.
 	;
 
-	for  do servesinglereq(line) quit:connection("connection")'="KEEP-ALIVE"  read line:timeout quit:'$test  quit:$zeof
+	for  do servesinglereq(line) quit:connection("CONNECTION")'="KEEP-ALIVE"  read line:timeout quit:'$test  quit:$zeof
 	quit
 
 errhandler()
