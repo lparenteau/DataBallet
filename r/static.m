@@ -68,7 +68,12 @@ handle(rule) ;
 	; Get and send content-type
 	set ext=$zparse(file,"TYPE")
 	if $zlength(ext),$data(conf("ct",ext)) set ct=conf("ct",ext)
-	else  set ct="text/plain"
+	else  do
+	.	open cmd:(command="file --mime-type --brief --dereference --no-pad --preserve-date --special-files "_file:readonly)::"PIPE"
+	.	use cmd
+	.	read ct
+	.	close cmd
+	.	use old
 	set response("headers","Content-Type")=ct
 
 	; Let the client know which compression will be used, if any.
