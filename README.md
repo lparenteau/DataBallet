@@ -1,6 +1,6 @@
 # HTTPM
 
-HTTP server developed using GT.M.
+HTTPM is an HTTP server and web framework implemented using the [M](https://en.wikipedia.org/wiki/MUMPS) language.  It is being developped and tested using [GT.M](http://sourceforge.net/projects/fis-gtm/).
 
 ## Configuring it
 

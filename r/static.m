@@ -1,5 +1,5 @@
 	;
-	; httpm, an HTTP server developed using GT.M
+	; httpm
 	; Copyright (C) 2012 Laurent Parenteau <laurent.parenteau@gmail.com>
 	;
 	; This program is free software: you can redistribute it and/or modify
@@ -16,10 +16,10 @@
 	; along with this program. If not, see <http://www.gnu.org/licenses/>.
 	;
 
-handle(rule) ;
-	; Static files routing
+handle(docroot) ;
+	; Static files handling
 	;
-	; The matched rule is used as the document root, and configured default file name
+	; Document root passed as in argument, and configured default file name
 	; is used if a directory is requested.
 	;
 
@@ -28,10 +28,10 @@ handle(rule) ;
 
 	; Ensure that the requested file exists and sits inside the document root.
 	new dontcare,file
-	set file=$zparse(rule_request("uri"))
+	set file=$zparse(docroot_request("uri"))
         if $zparse(file,"DIRECTORY")=file set file=file_conf("index")
 	set dontcare=$zsearch("")
-	if ($zsearch(file)="")!($zextract(file,0,$zlength(rule))'=rule) set response("status")="404" quit
+	if ($zsearch(file)="")!($zextract(file,0,$zlength(docroot))'=docroot) set response("status")="404" quit
 
 	new ext,ct,old,cmd,length,curdate,expdate,lastmod,buf,md5sum
 	set curdate=$horolog

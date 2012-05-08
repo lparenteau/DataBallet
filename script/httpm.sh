@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #
-# httpm, an HTTP server developed using GT.M
+# httpm
 # Copyright (C) 2012 Laurent Parenteau <laurent.parenteau@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
