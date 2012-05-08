@@ -23,19 +23,19 @@ route()	;
 	new uri,host,handler
 	set uri=request("uri")
 	set host=$select($data(request("headers","HOST")):request("headers","HOST"),1:"*")
-	set:'$data(^httpm("routing",host)) host=$select($data(^httpm("routing","*")):"*",1:"")
+	set:'$data(conf("routing",host)) host=$select($data(conf("routing","*")):"*",1:"")
 	; Try to locate a handle fhe requested URI on the requested host.
-	for i=$zlength(uri,"/"):-1:1 do  quit:$data(^httpm("routing",host,uri))
+	for i=$zlength(uri,"/"):-1:1 do  quit:$data(conf("routing",host,uri))
 	.	set uri=$zpiece(uri,"/",1,i)
 	.	set:uri="" uri="/"
-	if $data(^httpm("routing",host,uri)) set handler=^httpm("routing",host,uri)
+	if $data(conf("routing",host,uri)) set handler=conf("routing",host,uri)
 	; Otherwise, try that URI on the default host (ie. '*').
 	else  do
 	.	set host="*"
-	.	for i=$zlength(uri,"/"):-1:1 do  quit:$data(^httpm("routing",host,uri))
+	.	for i=$zlength(uri,"/"):-1:1 do  quit:$data(conf("routing",host,uri))
 	.	.	set uri=$zpiece(uri,"/",1,i)
 	.	.	set:uri="" uri="/"
-	.	set handler=^httpm("routing",host,uri)
+	.	set handler=conf("routing",host,uri)
 
 	xecute handler
 

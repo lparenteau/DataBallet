@@ -41,45 +41,59 @@ function checkpid() {
 	fi
 }
 
+function start() {
+	echo "Starting $progname."
+	checkpid
+	if [ "0" = "$status" ] ; then
+		echo "$progname is already running."
+	else
+		rm -f $pid
+		echo "Starting $progname at " `date` " using configfile." >> $log
+		TZ="Europe/London" nohup $gtm_dist/mumps -run start^httpm < /dev/null >> $log 2>&1 &
+		echo $! > $pid
+	fi
+}
+
+function stop() {
+	echo "Stoping $progname."
+	checkpid
+	if [ "0" = "$status" ] ; then
+		$gtm_dist/mupip stop `cat $pid`
+		echo "Stopped $progname at " `date` " using configfile." >> $log
+	else
+		echo "$progname is not running."
+	fi
+	rm -f $pid
+}
+
+function status() {
+	echo "Checking for $progname."
+	checkpid
+	if [ "0" = "$status" ] ; then
+		echo "$progname is running."
+	else
+		echo "$progname is not running."
+	fi
+}
+
 case "$1" in
 	start)
-		echo "Starting $progname."
-		checkpid
-		if [ "0" = "$status" ] ; then
-			echo "$progname is already running."
-		else
-			rm -f $pid
-			echo "Starting $progname at " `date` " using configfile." >> $log
-			TZ="Europe/London" nohup $gtm_dist/mumps -run start^httpm < /dev/null >> $log 2>&1 &
-			echo $! > $pid
-		fi
+		start
+		sleep 1
+		status
 		;;
 	stop)
-		echo "Stoping $progname."
-		checkpid
-		if [ "0" = "$status" ] ; then
-			$gtm_dist/mupip stop `cat $pid`
-			echo "Stopped $progname at " `date` " using configfile." >> $log
-		else
-			echo "$progname is not running."
-		fi
-		rm -f $pid
+		stop
 		;;
 	restart)
-		$0 stop
-		$0 start
+		stop
+		start
 		;;
 	status)
-		echo "Checking for $progname."
-		checkpid
-		if [ "0" = "$status" ] ; then
-			echo "$progname is running."
-		else
-			echo "$progname is not running."
-		fi
+		status
 		;;
 	*)
-		echo "Usage: $0 {start|stop|status|restart}"
+		echo "Usage: $0 {start|stop|status|restart} <configfile>"
 		exit 1
 		;;
 esac

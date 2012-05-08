@@ -23,6 +23,7 @@ conf()
 
 	; User configuration.
 	do envconf
+	do setup^routingconf
 
 	; HTTP status codes
 	set conf("status","100")="Continue"
