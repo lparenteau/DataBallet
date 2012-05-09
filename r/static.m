@@ -24,7 +24,7 @@ handle(docroot) ;
 	;
 
 	; Support GET and HEAD methods
-	if request("method")'="GET",request("method")'="HEAD" set response("status")="501" quit
+	quit:'$$methodis^request("GET,HEAD")
 
 	; Ensure that the requested file exists and sits inside the document root.
 	new dontcare,file
