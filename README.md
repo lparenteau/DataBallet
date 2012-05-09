@@ -4,11 +4,11 @@ HTTPM is an HTTP server and web framework implemented using the [M](https://en.w
 
 ## Configuring it
 
-See conf/httpm.conf and modify it to suits your needs, or copy, modify, and specify it as the second argument to httpm.sh.
+See conf/httpm.conf and modify it to suits your needs.  Better yet, copy, modify, and pass the new file as the second argument to httpm.sh.
 
 ## Starting the server
 
-Start the server by executing `./script/httpm.sh start <confiuration file>`.
+Start the server by executing `./script/httpm.sh start <configuration file>`.
 
 ## Stoping the server
 
