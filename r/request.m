@@ -49,7 +49,8 @@ parsehdrs(line)
 
 	quit
 
-methodis(methods) ;
+methodis(methods)
+	;
 	; Compare current request's method with the comma seperated list of methods.
 	;
 	new p
@@ -59,3 +60,18 @@ methodis(methods) ;
 	; Method is not in the supplied list
 	set response("status")="501"
 	quit 0
+
+cacheisvalid(lastmod,etag)
+	;
+	; Check if the client's cached element is still valid for this request.
+	;
+	if $data(request("headers","IF-MODIFIED-SINCE")) do
+	.	new ifmod
+	.	set ifmod=$$FUNC^%DATE($zextract(request("headers","IF-MODIFIED-SINCE"),6,7)_"/"_$zextract(request("headers","IF-MODIFIED-SINCE"),9,11)_"/"_$zextract(request("headers","IF-MODIFIED-SINCE"),13,16))_","_$$CTN^%H($zextract(request("headers","IF-MODIFIED-SINCE"),18,25))
+	.	; If the file's last modification date is older than the if-modified-since date from the request header, send a "304 Not Modified" reponse.
+	.	; Notice that in case the below condition is false, the else on the next line will be executed.
+	.	if lastmod'>ifmod set response("status")="304"
+	else  if $data(request("headers","IF-NONE-MATCH")),etag=request("headers","IF-NONE-MATCH") set response("status")="304"
+	else  quit 0
+
+	quit 1

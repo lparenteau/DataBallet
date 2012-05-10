@@ -185,6 +185,9 @@ serve09(line)
 	; Extract the Request-URI from the 1st line.
 	set request("uri")=$$geturi^request(line)
 
+	; Init some response fields
+	do init^response()
+
 	; Route the request to the correct handler.  This will populate the response variable.
 	do route^routing()
 
@@ -217,6 +220,9 @@ servesinglereq(line)
 	.	use $io:(nodelim)
 	.	for  read line#length:timeout quit:'$test  quit:$zeof  set request("content")=request("content")_line  set length=length-$zlength(line)  quit:length<1
 	.	use $io:(delim=delim)
+
+	; Init some response fields
+	do init^response()
 
 	; Route the request to the correct handler.  This will populate the response variable.
 	do route^routing()

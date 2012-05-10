@@ -51,6 +51,58 @@ sendresphdr()
 	; Send the Server header.
 	write "Server: "_conf("serverstring")_eol
 
+	; Set content-type for file, if needed
+	if $data(response("file")) do
+	.	new ext,ct
+	.	set ext=$zparse(response("file"),"TYPE")
+	.	if $zlength(ext),$data(conf("ct",ext)) set ct=conf("ct",ext)
+	.	else  do
+	.	.	new cmd,old
+	.	.	set cmd="file"
+	.	.	set old=$io
+	.	.	open cmd:(command="file --mime-type --brief --dereference --no-pad --preserve-date --special-files "_response("file"):readonly)::"PIPE"
+	.	.	use cmd
+	.	.	read ct
+	.	.	close cmd
+	.	.	use old
+	.	set response("headers","Content-Type")=ct
+
+	; Handle Accept-Encoding compression
+	if $data(request("headers","ACCEPT-ENCODING")) do
+	.	set response("headers","Vary")="Accept-Encoding"
+	.	if $data(conf("compressible",response("headers","Content-Type"))) do
+	.	.	set:request("headers","ACCEPT-ENCODING")["compress" response("encoding")="compress"
+	.	.	set:request("headers","ACCEPT-ENCODING")["gzip" response("encoding")="gzip"
+	.	.	set:$data(response("encoding")) response("headers","Content-Encoding")=response("encoding")
+
+	; Handle Transfer-Encoding, including chunked-encoding for HTTP/1.1 (content-length for everyone else)
+	if connection("HTTPVER")="HTTP/1.1" do
+	.	new encoding
+	.	set encoding="chunked"
+	.	; If TE advertise compression and we are not already using it, check if we can and advertise it if used.
+	.	if '$data(response("encoding")),$data(request("headers","TE")) do
+	.	.	write "Vary: TE"_eol
+	.	.	if $data(conf("compressible",response("headers","Content-Type"))) do
+	.	.	.	set:request("headers","TE")["compress" response("encoding")="compress"
+	.	.	.	set:request("headers","TE")["gzip" response("encoding")="gzip"
+	.	.	.	set:$data(response("encoding")) encoding=encoding_", "_response("encoding")
+	.	set response("headers","Transfer-Encoding")=encoding
+	.	if 1
+	else  do
+	.	new length
+	.	if $data(response("file")) do
+	.	.	new cmd,old
+	.	.	set cmd="du"
+	.	.	set old=$io
+	.	.	open cmd:(command="du -b "_response("file"):readonly)::"PIPE"
+	.	.	use cmd
+	.	.	read length
+	.	.	close cmd
+	.	.	set length=$zpiece(length,$char(9),1)
+	.	.	if 1
+	.	else  set length=$zlength(response("content"))
+	.	set response("headers","Content-Length")=$zpiece(length,$char(9),1)
+
 	; Send all headers present in the response.
 	new header
 	set header=$order(response("headers",""))
@@ -69,7 +121,9 @@ send()
 	;
 
 	; If a file has been specified, send it.
-	do:$data(response("file")) sendfile(response("file"))
+	if request("method")'="HEAD" do
+	.	if $data(response("file")) do sendfile(response("file")) if 1
+	.	else  sendcontent(response("content"))
 
 	quit
 
@@ -96,3 +150,20 @@ sendfile(filename)
 	write:connection("HTTPVER")="HTTP/1.1" "0",eol,eol
 	quit
 
+sendcontent(data)
+	;
+	; Send supplied data as content
+	;
+	write:connection("HTTPVER")="HTTP/1.1" $$FUNC^%DH($zlength(data),1),eol
+	write data
+	write:connection("HTTPVER")="HTTP/1.1" eol
+	set $x=0
+	write:connection("HTTPVER")="HTTP/1.1" "0",eol,eol
+	quit
+
+init()
+	;
+	; Initialiaze the response headers
+	;
+	set response("date")=$horolog
+	set response("headers","Date")=$zdate(response("date"),"DAY, DD MON YEAR 24:60:SS ")

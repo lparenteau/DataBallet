@@ -33,18 +33,11 @@ handle(docroot) ;
 	set dontcare=$zsearch("")
 	if ($zsearch(file)="")!($zextract(file,0,$zlength(docroot))'=docroot) set response("status")="404" quit
 
-	new ext,ct,old,cmd,length,curdate,expdate,lastmod,buf,md5sum
-	set curdate=$horolog
-	set response("headers","Date")=$zdate(curdate,"DAY, DD MON YEAR 24:60:SS ")
+	new old,cmd,expdate,lastmod,buf,md5sum
 
-	; Get file last modified data, content-length, and md5sum.
+	; Get file last modified data and md5sum.
 	set old=$io
 	set cmd="cmd"
-	if connection("HTTPVER")'="HTTP/1.1" do
-	.	open cmd:(command="du -b "_file:readonly)::"PIPE"
-	.	use cmd
-	.	read length
-	.	close cmd
 	open cmd:(command="stat -c %y "_file:readonly)::"PIPE"
 	use cmd
 	read buf
@@ -56,52 +49,11 @@ handle(docroot) ;
 	use old
 	set lastmod=$$CDN^%H($zextract(buf,6,7)_"/"_$zextract(buf,9,10)_"/"_$zextract(buf,1,4))_","_$$CTN^%H($zextract(buf,12,19))
 
-	if $data(request("headers","IF-MODIFIED-SINCE")) do
-	.	new ifmod
-	.	set ifmod=$$FUNC^%DATE($zextract(request("headers","IF-MODIFIED-SINCE"),6,7)_"/"_$zextract(request("headers","IF-MODIFIED-SINCE"),9,11)_"/"_$zextract(request("headers","IF-MODIFIED-SINCE"),13,16))_","_$$CTN^%H($zextract(request("headers","IF-MODIFIED-SINCE"),18,25))
-	.	; If the file's last modification date is older than the if-modified-since date from the request header, send a "304 Not Modified" reponse.
-	.	; Notice that in case the below condition is false, the else on the next line will be executed.
-	.	if lastmod'>ifmod set response("status")="304"
-	else  if $data(request("headers","IF-NONE-MATCH")),md5sum=request("headers","IF-NONE-MATCH") set response("status")="304"
-	else  set response("status")="200" set:request("method")'="HEAD" response("file")=file
+	; If the client's cached copy is no valid, answer a 200 OK with for the file.
+	if '$$cacheisvalid^request(lastmod,md5sum) set response("status")="200" set response("file")=file
 
-	; Get and send content-type
-	set ext=$zparse(file,"TYPE")
-	if $zlength(ext),$data(conf("ct",ext)) set ct=conf("ct",ext)
-	else  do
-	.	open cmd:(command="file --mime-type --brief --dereference --no-pad --preserve-date --special-files "_file:readonly)::"PIPE"
-	.	use cmd
-	.	read ct
-	.	close cmd
-	.	use old
-	set response("headers","Content-Type")=ct
-
-	; Let the client know which compression will be used, if any.
-	if $data(request("headers","ACCEPT-ENCODING")) do
-	.	; Send Vary header
-	.	set response("headers","Vary")="Accept-Encoding"
-	.	if $data(conf("compressible",ct)) do
-	.	.	set:request("headers","ACCEPT-ENCODING")["compress" response("encoding")="compress"
-	.	.	set:request("headers","ACCEPT-ENCODING")["gzip" response("encoding")="gzip"
-	.	.	set:$data(response("encoding")) response("headers","Content-Encoding")=response("encoding")
-	
-	; Send chunked-encoding for HTTP/1.1, content-length for everyone else
-	if connection("HTTPVER")="HTTP/1.1" do
-	.	new encoding
-	.	set encoding="chunked"
-	.	; If TE advertise compression and we are not already using it, check if we can and advertise it if used.
-	.	if '$data(response("encoding")),$data(request("headers","TE")) do
-	.	.	write "Vary: TE"_eol
-	.	.	if $data(conf("compressible",ct)) do
-	.	.	.	set:request("headers","TE")["compress" response("encoding")="compress"
-	.	.	.	set:request("headers","TE")["gzip" response("encoding")="gzip"
-	.	.	.	set:$data(response("encoding")) encoding=encoding_", "_response("encoding")
-	.	set response("headers","Transfer-Encoding")=encoding
-	.	if 1
-	else  set response("headers","Content-Length")=$zpiece(length,$char(9),1)
-
-	; Send Expires header
-	set expdate=$zpiece(curdate,",",1)+1_","_$zpiece(curdate,",",2)
+	; Send Expires header to be 1 year later than current response's date.
+	set expdate=$zpiece(response("date"),",",1)+1_","_$zpiece(response("date"),",",2)
 	set response("headers","Expires")=$zdate(expdate,"DAY, DD MON YEAR 24:60:SS ")_"GMT"
 
 	; Send Last-Modified header
@@ -110,7 +62,7 @@ handle(docroot) ;
 	; Send Accept-Range header
 	set response("headers","Accept-Ranges")="none"
 
-	; Send Cache-Control header(s)
+	; Send Cache-Control's max-age to be 1 year.
 	set response("headers","Cache-Control")="max-age = 86400"
 
 	; Send Content-MD5
