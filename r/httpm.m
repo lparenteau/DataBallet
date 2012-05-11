@@ -105,6 +105,7 @@ envconf()
 	set conf("listenon")=$ztrnlnm("httpm_port","","","","","VALUE")
 	set conf("index")=$ztrnlnm("httpm_index","","","","","VALUE")
 	set conf("errorlog")=$ztrnlnm("httpm_errorlog","","","","","VALUE")
+	set conf("log")=$ztrnlnm("httpm_log","","","","","VALUE")
 
 	quit
 

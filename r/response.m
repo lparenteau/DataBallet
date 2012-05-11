@@ -38,18 +38,18 @@ senderr(status)
 	; Send error data, if any
 	write:$data(conf("status",status,"data")) conf("status",status,"data")
 
+	; Log request/response
+	set:'$data(response("date")) response("date")=$horolog
+	set:'$data(request("method")) request("method")=""
+	set:'$data(request("uri")) request("uri")=""
+	do common^log()
+
 	quit
 
 sendresphdr()
 	;
 	; Send the response status and headers.
 	;
-
-	; Send the status line.
-	write connection("HTTPVER")_" "_response("status")_" "_conf("status",response("status"))_eol
-
-	; Send the Server header.
-	write "Server: "_conf("serverstring")_eol
 
 	; Set content-type for file, if needed
 	if $data(response("file")) do
@@ -67,41 +67,47 @@ sendresphdr()
 	.	.	use old
 	.	set response("headers","Content-Type")=ct
 
-	; Handle Accept-Encoding compression
-	if $data(request("headers","ACCEPT-ENCODING")) do
-	.	set response("headers","Vary")="Accept-Encoding"
-	.	if $data(conf("compressible",response("headers","Content-Type"))) do
-	.	.	set:request("headers","ACCEPT-ENCODING")["compress" response("encoding")="compress"
-	.	.	set:request("headers","ACCEPT-ENCODING")["gzip" response("encoding")="gzip"
-	.	.	set:$data(response("encoding")) response("headers","Content-Encoding")=response("encoding")
-
-	; Handle Transfer-Encoding, including chunked-encoding for HTTP/1.1 (content-length for everyone else)
-	if connection("HTTPVER")="HTTP/1.1" do
-	.	new encoding
-	.	set encoding="chunked"
-	.	; If TE advertise compression and we are not already using it, check if we can and advertise it if used.
-	.	if '$data(response("encoding")),$data(request("headers","TE")) do
-	.	.	write "Vary: TE"_eol
+	if $data(response("headers","Content-Type")) do
+	.	; Handle Accept-Encoding compression
+	.	if $data(request("headers","ACCEPT-ENCODING")) do
+	.	.	set response("headers","Vary")="Accept-Encoding"
 	.	.	if $data(conf("compressible",response("headers","Content-Type"))) do
-	.	.	.	set:request("headers","TE")["compress" response("encoding")="compress"
-	.	.	.	set:request("headers","TE")["gzip" response("encoding")="gzip"
-	.	.	.	set:$data(response("encoding")) encoding=encoding_", "_response("encoding")
-	.	set response("headers","Transfer-Encoding")=encoding
-	.	if 1
-	else  do
-	.	new length
-	.	if $data(response("file")) do
-	.	.	new cmd,old
-	.	.	set cmd="du"
-	.	.	set old=$io
-	.	.	open cmd:(command="du -b "_response("file"):readonly)::"PIPE"
-	.	.	use cmd
-	.	.	read length
-	.	.	close cmd
-	.	.	set length=$zpiece(length,$char(9),1)
+	.	.	.	set:request("headers","ACCEPT-ENCODING")["compress" response("encoding")="compress"
+	.	.	.	set:request("headers","ACCEPT-ENCODING")["gzip" response("encoding")="gzip"
+	.	.	.	set:$data(response("encoding")) response("headers","Content-Encoding")=response("encoding")
+	.	; Handle Transfer-Encoding, including chunked-encoding for HTTP/1.1 (content-length for everyone else)
+	.	if connection("HTTPVER")="HTTP/1.1" do
+	.	.	new encoding
+	.	.	set encoding="chunked"
+	.	.	; If TE advertise compression and we are not already using it, check if we can and advertise it if used.
+	.	.	if '$data(response("encoding")),$data(request("headers","TE")) do
+	.	.	.	write "Vary: TE"_eol
+	.	.	.	if $data(conf("compressible",response("headers","Content-Type"))) do
+	.	.	.	.	set:request("headers","TE")["compress" response("encoding")="compress"
+	.	.	.	.	set:request("headers","TE")["gzip" response("encoding")="gzip"
+	.	.	.	.	set:$data(response("encoding")) encoding=encoding_", "_response("encoding")
+	.	.	set response("headers","Transfer-Encoding")=encoding
 	.	.	if 1
-	.	else  set length=$zlength(response("content"))
-	.	set response("headers","Content-Length")=$zpiece(length,$char(9),1)
+	.	else  do
+	.	.	new length
+	.	.	if $data(response("file")) do
+	.	.	.	new cmd,old
+	.	.	.	set cmd="du"
+	.	.	.	set old=$io
+	.	.	.	open cmd:(command="du -b "_response("file"):readonly)::"PIPE"
+	.	.	.	use cmd
+	.	.	.	read length
+	.	.	.	close cmd
+	.	.	.	set length=$zpiece(length,$char(9),1)
+	.	.	.	if 1
+	.	.	else  set:$data(response("content")) length=$zlength(response("content"))
+	.	.	set:$data(length) response("headers","Content-Length")=length
+
+	; Send the status line.
+	write connection("HTTPVER")_" "_response("status")_" "_conf("status",response("status"))_eol
+
+	; Send the Server header.
+	write "Server: "_conf("serverstring")_eol
 
 	; Send all headers present in the response.
 	new header
@@ -123,7 +129,10 @@ send()
 	; If a file has been specified, send it.
 	if request("method")'="HEAD" do
 	.	if $data(response("file")) do sendfile(response("file")) if 1
-	.	else  sendcontent(response("content"))
+	.	else  do:$data(response("content")) sendcontent(response("content"))
+
+	; Log request/response
+	do common^log()
 
 	quit
 
@@ -132,7 +141,8 @@ sendfile(filename)
 	; Read all content of a file and send it.  If compression was advertised, compress the file before sending it.
 	;
 
-	new old,line,file
+	new old,line,file,length
+	set length=0
 	set old=$IO
 	if $data(response("encoding")) do
 	.	set file="cmd"
@@ -143,11 +153,13 @@ sendfile(filename)
 	.	use old
 	.	write:connection("HTTPVER")="HTTP/1.1" $$FUNC^%DH($zlength(line),1),eol
 	.	write line
+	.	set length=length+$zlength(line)
 	.	write:connection("HTTPVER")="HTTP/1.1" eol
 	.	set $x=0
 	close file
 	use old
 	write:connection("HTTPVER")="HTTP/1.1" "0",eol,eol
+	set:'$data(response("headers","Content-Length")) response("headers","Content-Length")=length
 	quit
 
 sendcontent(data)
@@ -159,6 +171,7 @@ sendcontent(data)
 	write:connection("HTTPVER")="HTTP/1.1" eol
 	set $x=0
 	write:connection("HTTPVER")="HTTP/1.1" "0",eol,eol
+	set:'$data(response("headers","Content-Length")) response("headers","Content-Length")=$zlength(data)
 	quit
 
 init()
@@ -166,4 +179,6 @@ init()
 	; Initialiaze the response headers
 	;
 	set response("date")=$horolog
-	set response("headers","Date")=$zdate(response("date"),"DAY, DD MON YEAR 24:60:SS ")
+	set response("headers","Date")=$zdate(response("date"),"DAY, DD MON YEAR 24:60:SS ")_"GMT"
+	quit
+
