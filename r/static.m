@@ -16,19 +16,27 @@
 	; along with this program. If not, see <http://www.gnu.org/licenses/>.
 	;
 
-handle(docroot) ;
+handle(docroot,urlroot)
+	;
 	; Static files handling
 	;
-	; Document root passed as in argument, and configured default file name
-	; is used if a directory is requested.
+	; Document root passed as in argument, as well as the "url root" for that document path,
+	; default to  "/".  The  configured default file name is used if a directory is requested.
 	;
 
 	; Support GET and HEAD methods
 	quit:'$$methodis^request("GET,HEAD")
 
+	if '$data(urlroot) new urlroot set urlroot="/"
 	; Ensure that the requested file exists and sits inside the document root.
-	new dontcare,file
-	set file=$zparse(docroot_request("uri"))
+	new dontcare,file,d1,d2
+	; Remove urlroot from requested URI so it points into docroot
+	set file=$zparse(docroot_"/"_$zextract(request("uri"),$zlength(urlroot)+1,$zlength(request("uri"))))
+	; If the request is a directory, but is missing the final "/", redirect it to the correct location
+	set d1=$zparse(file,"DIRECTORY")
+	set d2=$zparse(file_"/","DIRECTORY")
+	if (d1'=d2)&(d1'="")&(d2'="") set response("status")="301" set response("headers","Location")=request("uri")_"/" quit
+	; If the requested URI is a directory, use the default file.
         if $zparse(file,"DIRECTORY")=file set file=file_conf("index")
 	set dontcare=$zsearch("")
 	if ($zsearch(file)="")!($zextract(file,0,$zlength(docroot))'=docroot) set response("status")="404" quit
