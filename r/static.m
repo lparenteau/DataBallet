@@ -16,30 +16,24 @@
 	; along with this program. If not, see <http://www.gnu.org/licenses/>.
 	;
 
-handle(docroot,urlroot)
+handle(docroot,urlroot,file)
 	;
 	; Static files handling
 	;
 	; Document root passed as in argument, as well as the "url root" for that document path,
 	; default to  "/".  The  configured default file name is used if a directory is requested.
 	;
+	; File is also an optional argument, which can contain the complete preprocessed path +
+	; file name derived from request("uri").  If it isn't present, this handler will get it
+	; itself from that request subscript.
+	;
 
 	; Support GET and HEAD methods
 	quit:'$$methodis^request("GET,HEAD")
 
+	; Get the path + file name.  An appropriate HTTP error message will be set if the file isn't found.
 	if '$data(urlroot) new urlroot set urlroot="/"
-	; Ensure that the requested file exists and sits inside the document root.
-	new dontcare,file,d1,d2
-	; Remove urlroot from requested URI so it points into docroot
-	set file=$zparse(docroot_"/"_$zextract(request("uri"),$zlength(urlroot)+1,$zlength(request("uri"))))
-	; If the request is a directory, but is missing the final "/", redirect it to the correct location
-	set d1=$zparse(file,"DIRECTORY")
-	set d2=$zparse(file_"/","DIRECTORY")
-	if (d1'=d2)&(d1'="")&(d2'="") set response("status")="301" set response("headers","Location")=request("uri")_"/" quit
-	; If the requested URI is a directory, use the default file.
-        if $zparse(file,"DIRECTORY")=file set file=file_conf("index")
-	set dontcare=$zsearch("")
-	if ($zsearch(file)="")!($zextract(file,0,$zlength(docroot))'=docroot) set response("status")="404" quit
+	if '$data(file) new file set file=$$getfile(docroot,urlroot) quit:file=""
 
 	new old,cmd,expdate,lastmod,buf,md5sum
 
@@ -60,7 +54,7 @@ handle(docroot,urlroot)
 	; If the client's cached copy is no valid, answer a 200 OK with for the file.
 	if '$$cacheisvalid^request(lastmod,md5sum) set response("status")="200" set response("file")=file
 
-	; Send Expires header to be 1 year later than current response's date.
+	; Send Expires header to be 1 day later than current response's date.
 	set expdate=$zpiece(response("date"),",",1)+1_","_$zpiece(response("date"),",",2)
 	set response("headers","Expires")=$zdate(expdate,"DAY, DD MON YEAR 24:60:SS ")_"GMT"
 
@@ -70,7 +64,7 @@ handle(docroot,urlroot)
 	; Send Accept-Range header
 	set response("headers","Accept-Ranges")="none"
 
-	; Send Cache-Control's max-age to be 1 year.
+	; Send Cache-Control's max-age to be 1 day.
 	set response("headers","Cache-Control")="max-age = 86400"
 
 	; Send Content-MD5
@@ -80,3 +74,31 @@ handle(docroot,urlroot)
 	set response("headers","ETag")=md5sum
 
 	quit
+
+getfile(docroot,urlroot)
+	;
+	; Get a path + file name from request("uri"), sitting in docroot, and considering that
+	; docroot is represented by urlroot.
+	;
+
+	; Ensure that the requested file exists and sits inside the document root.
+	new dontcare,file,d1,d2
+	; Remove urlroot from requested URI so it points into docroot
+	set file=$zparse(docroot_"/"_$zextract(request("uri"),$zlength(urlroot)+1,$zlength(request("uri"))))
+	; If the request is a directory, but is missing the final "/", permanently redirect it to the correct location
+	set d1=$zparse(file,"DIRECTORY")
+	set d2=$zparse(file_"/","DIRECTORY")
+	if (d1'=d2)&(d1'="")&(d2'="") do
+	.	set response("status")="301"
+	.	set response("headers","Location")=request("uri")_"/"
+	.	set file=""
+	else  do
+	.	; If the requested URI is a directory, use the default file.
+	.	if $zparse(file,"DIRECTORY")=file set file=file_conf("index")
+	.	set dontcare=$zsearch("")
+	.	; If the file doesn't exist, send a 404 not found.
+	.	if ($zsearch(file)="")!($zextract(file,0,$zlength(docroot))'=docroot) do
+	.	.	set response("status")="404"
+	.	.	set file=""
+
+	quit file

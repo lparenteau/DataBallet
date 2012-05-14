@@ -166,6 +166,20 @@ sendcontent(data)
 	;
 	; Send supplied data as content
 	;
+
+	if $data(response("encoding")) do
+	.	new cmd,old,arg
+	.	set old=$io
+	.	set cmd="encoding"
+	.	if response("encoding")="gzip" set arg=" -f"
+	.	else  set arg=""
+	.	open cmd:(exception="new dontcare":command=response("encoding")_arg:fixed:wrap)::"PIPE"
+	.	use cmd
+	.	write data
+	.	write /eof
+	.	read data
+	.	close cmd
+	.	use old
 	write:connection("HTTPVER")="HTTP/1.1" $$FUNC^%DH($zlength(data),1),eol
 	write data
 	write:connection("HTTPVER")="HTTP/1.1" eol
