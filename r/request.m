@@ -40,7 +40,7 @@ parsehdrs(line)
 	;
 	new fieldname,value
 	set fieldname=$ztranslate($$FUNC^%UCASE($zpiece(line," ",1)),":")
-	set value=$ztranslate($zpiece(line," ",2),$char(13))
+	set value=$ztranslate($zpiece(line," ",2,$zlength(line)),$char(13))
 	; Use upper case value for HOST and CONNECTION header field, as those are looked at internally.
 	set:(fieldname="HOST")!(fieldname="CONNECTION") value=$$FUNC^%UCASE(value)
 
@@ -58,20 +58,20 @@ methodis(methods)
 	; Method is in the supplied list
 	quit:p'="" 1
 	; Method is not in the supplied list
-	set response("status")="501"
+	set response("status")="405"
 	quit 0
 
 cacheisvalid(lastmod,etag)
 	;
 	; Check if the client's cached element is still valid for this request.
 	;
-	if $data(request("headers","IF-MODIFIED-SINCE")) do
+	new cacheisvalid
+	set cacheisvalid=0
+	if $data(request("headers","IF-NONE-MATCH")),etag=request("headers","IF-NONE-MATCH") set response("status")="304" set cacheisvalid=1
+	else  if $data(request("headers","IF-MODIFIED-SINCE")) do
 	.	new ifmod
 	.	set ifmod=$$FUNC^%DATE($zextract(request("headers","IF-MODIFIED-SINCE"),6,7)_"/"_$zextract(request("headers","IF-MODIFIED-SINCE"),9,11)_"/"_$zextract(request("headers","IF-MODIFIED-SINCE"),13,16))_","_$$CTN^%H($zextract(request("headers","IF-MODIFIED-SINCE"),18,25))
 	.	; If the file's last modification date is older than the if-modified-since date from the request header, send a "304 Not Modified" reponse.
-	.	; Notice that in case the below condition is false, the else on the next line will be executed.
-	.	if lastmod'>ifmod set response("status")="304"
-	else  if $data(request("headers","IF-NONE-MATCH")),etag=request("headers","IF-NONE-MATCH") set response("status")="304"
-	else  quit 0
+	.	if lastmod']ifmod set response("status")="304" set cacheisvalid=1
 
-	quit 1
+	quit cacheisvalid

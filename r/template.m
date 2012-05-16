@@ -33,6 +33,7 @@ handle(docroot,urlroot)
 	; Templates are pretty much handled like static file, so use static's getfile to
 	; get the full file + pathname to the requested element.  An appropriate HTTP error
 	; message will be set if the file isn't found.
+	if '$data(urlroot) new urlroot set urlroot="/"
 	new file
 	set file=$$getfile^static(docroot,urlroot)
 	quit:file=""
@@ -42,7 +43,12 @@ handle(docroot,urlroot)
 
 	; Parse the file to fill reponse("content") and get the last modified date.
 	new lastmod
+	set response("content")=""
+	new localvar
 	set lastmod=$$loadcontent(docroot,file)
+
+	; Set response's content type
+	set response("headers","Content-Type")="text/html"
 
 	; Get md5sum of the generated content.
 	new old,cmd,md5sum
@@ -88,8 +94,12 @@ loadcontent(docroot,file)
 	; Parse the file and fill reponse("content").
 	;
 	; Template language :
-	;  <%include%<filename>%/> : Include the content of <file>.
-	;     Example: <%include%header.html%/>
+	;  <%include%file%/> : Replace the whole line with the content of 'file'.
+	;     Example: <%include%/header.html%/>
+	;  <%set%var=value%/> : Set a local variable value.  The whole line is dropped from output.
+	;     Example: <%set%title=My Example Web Site%/>
+	;  {%}var{%} : Replace the {%}...{%} string with the value of the local variable, if it exist.  In all case, the {%}...{%} string is dropped from output.
+	;     Example: Welcome to {%}title{%}.
 	;
 	; Return the last modified date, which will be the latest one from all the
 	; files accessed.
@@ -107,39 +117,28 @@ loadcontent(docroot,file)
 
 	; Read the file and fill response("content")
 	new line,token,value,start,end
-	set response("content")=""
 	open file:(readonly:chset="M")
 	use file:width=1048576
 	for  read line quit:$zeof  do
 	.	set start=$zfind(line,"<%")
-	.	if start=0 set response("content")=response("content")_line_delim
+	.	if start=0 do
+	.	.	for  quit:$zfind(line,"{%}")=0  do
+	.	.	.	set line=$zpiece(line,"{%}",1)_$select($data(localvar($zpiece(line,"{%}",2))):localvar($zpiece(line,"{%}",2)),1:"")_$zpiece(line,"{%}",3,$zlength(line))
+	.	.	set response("content")=response("content")_line_delim
 	.	else  do
 	.	.	set end=$zfind(line,"%/>")
 	.	.	if (end'=0)&(end>start) do
 	.	.	.	set token=$zpiece(line,"%",2)
 	.	.	.	set value=$zpiece(line,"%",3)
-	.	.	.	if token="include" do
-	.	.	.	.	new old,innerfile
-	.	.	.	.	set old=$io
-	.	.	.	.	set innerfile=docroot_value
-	.	.	.	.	open innerfile:(readonly:chset="M")
-	.	.	.	.	use innerfile:width=1048576
-	.	.	.	.	for  read line quit:$zeof  do
-	.	.	.	.	.	set response("content")=response("content")_line_delim
-	.	.	.	.	close innerfile
-	.	.	.	.	open cmd:(command="stat -c %y "_innerfile:readonly)::"PIPE"
-	.	.	.	.	use cmd
-	.	.	.	.	read buf
-	.	.	.	.	close cmd
-	.	.	.	.	use old
-	.	.	.	.	set innerlastmod=$$CDN^%H($zextract(buf,6,7)_"/"_$zextract(buf,9,10)_"/"_$zextract(buf,1,4))_","_$$CTN^%H($zextract(buf,12,19))
+	.	.	.	if token="set" do
+	.	.	.	.	set localvar($zpiece(value,"=",1))=$zpiece(value,"=",2,$zlength(line))
+	.	.	.	else  if token="include" do
+	.	.	.	.	new innerlastmod
+	.	.	.	.	set innerlastmod=$$loadcontent(docroot,docroot_value)
 	.	.	.	.	; Update last modified date if that included file is newer than the base file.
 	.	.	.	.	set:innerlastmod]lastmod lastmod=innerlastmod
 	close file
 	use old
-
-	; Set response's content type
-	set response("headers","Content-Type")="text/html"
 
 	; Return last modified date.
 	quit lastmod
