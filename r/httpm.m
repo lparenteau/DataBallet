@@ -28,7 +28,7 @@ conf()
 	; HTTP status codes
 	; set conf("status","100")="Continue"
 	; set conf("status","101")="Switching Protocols"
-	; set conf("status","200")="OK"
+	set conf("status","200")="OK"
 	; set conf("status","201")="Created"
 	; set conf("status","202")="Accepted"
 	; set conf("status","203")="Non-Authoritative Information"
@@ -53,7 +53,7 @@ conf()
 	set conf("status","405")="Method Not Allowed"
 	; set conf("status","406")="Not Acceptable"
 	; set conf("status","407")="Proxy Authentication Required"
-	; set conf("status","408")="Request Timeout"
+	set conf("status","408")="Request Timeout"
 	; set conf("status","409")="Conflict"
 	; set conf("status","410")="Gone"
 	; set conf("status","411")="Length Required"
@@ -206,24 +206,22 @@ servesinglereq(line)
 	; Extract the Request-URI
 	set request("uri")=$$geturi^request(line)
 
-	; Read all request
-	for  read line:timeout quit:'$test  quit:line=$char(13)  quit:$zeof  do parsehdrs^request(line)
-	quit:'$test
-	quit:$zeof
-
-	; If the request advertised a body, read it.
-	if $data(request("headers","CONTENT-LENGTH")) do
-	.	set request("content")=""
-	.	set length=request("headers","CONTENT-LENGTH")
-	.	use $io:(nodelim)
-	.	for  read line#length:timeout quit:'$test  quit:$zeof  set request("content")=request("content")_line  set length=length-$zlength(line)  quit:length<1
-	.	use $io:(delim=delim)
-
 	; Init some response fields
 	do init^response()
 
-	; Route the request to the correct handler.  This will populate the response variable.
-	do route^routing()
+	; Read all request
+	for  read line:timeout quit:'$test  quit:line=$char(13)  quit:$zeof  do parsehdrs^request(line)
+	if ('$test)!($zeof) set response("status")="408"
+	else  do
+	.	; If the request advertised a body, read it.
+	.	if $data(request("headers","CONTENT-LENGTH")) do
+	.	.	set request("content")=""
+	.	.	set length=request("headers","CONTENT-LENGTH")
+	.	.	use $io:(nodelim)
+	.	.	for  read line#length:timeout quit:'$test  quit:$zeof  set request("content")=request("content")_line  set length=length-$zlength(line)  quit:length<1
+	.	.	use $io:(delim=delim)
+	.	; Route the request to the correct handler.  This will populate the response variable.
+	.	do route^routing()
 
 	; Send response headers
 	do sendresphdr^response()
@@ -253,8 +251,8 @@ errhandler()
 	open file:(append:nofixed:wrap:noreadonly:chset="M")
 	use file
 	write "Error at "_$horolog,!,$zstatus,!
-	zshow "SDV"
-	use old
+	zshow "SIDV"
 	close file
+	use old
 	halt
 

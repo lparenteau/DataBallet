@@ -20,15 +20,30 @@ common()
 	;
 	; Output a Common Log Format entry for the current request/response to the log file.
 	;
-
-	new file,old,devices
+	new file,old,devices,msg
 	zshow "D":devices
 	set old=$io
 	set file=conf("log")
-	open file:(append:nofixed:wrap:noreadonly:chset="M")
-	use file
-	write $zpiece($zpiece(devices("D",2),"=",4),"@",1)_" - - ["_$zdate(response("date"),"DD/MON/YEAR:24:60:SS ")_"+0000] """_request("method")_" "_request("uri")_" "_connection("HTTPVER")_""" "_response("status")_" "_$select($data(response("headers","Content-Length")):response("headers","Content-Length"),1:"0")
-	use old
+	set msg=$zpiece($zpiece(devices("D",2),"=",4),"@",1)_" - - ["_$zdate(response("date"),"DD/MON/YEAR:24:60:SS ")_"+0000] """_request("method")_" "_request("uri")_" "_connection("HTTPVER")_""" "_response("status")_" "_$select($data(response("headers","Content-Length")):response("headers","Content-Length"),1:"0")
+	do dolog()
 	close file	
+	use old
+	quit
 
+dolog()
+	;
+	; Open the chosen file and write the requested message
+	;
+	open file:(append:nofixed:wrap:noreadonly:chset="M")
+	use file:exception="do retry"
+	write msg,!
+	quit
+
+retry()
+	; 
+	; If the file has been updated between the open & write, retry again
+	;
+	zmessage:$zpiece($zstatus,",",3)'="%GTM-E-NOTTOEOFONPUT" +$zstatus
+	close file
+	do dolog()
 	quit
