@@ -111,8 +111,11 @@ start()
 	; Start the HTTP server.
 	;
 	set $ZTRAP="do errhandler^httpm"
+	; Cleanup scratch global
+	kill ^TMP("httpm")
 	new conf
 	do conf
+	job start^log(conf("log"))
 	new socket,key,handle,p,socketfd
 	set socket="httpm"
 	open socket:(ZLISTEN=conf("listenon")_":TCP":znoff:zdelay:zbfsize=2048:zibfsize=2048:attach="httpm"):30:"SOCKET"
@@ -129,15 +132,15 @@ start()
 	close p
 	use socket
 	set socketfd=socketfd+1
-	for  do
+	for  do  quit:$data(^TMP("httpm","quit"))
 	.	set key=""
-	.	for  do  quit:key'=""
+	.	for  do  quit:key'=""  quit:$data(^TMP("httpm","quit"))
 	.	.	write /wait(1)
 	.	.	set key=$key
 	.	set handle=$piece(key,"|",2)
 	.	; Spawn a new process to handle the connection then close the connected socket as we won't use it from here.
 	.	zsystem "$gtm_dist/mumps -run serve^httpm <&"_socketfd_" >&"_socketfd_" 2>>"_conf("errorlog")_" &"
-	.	close socket:(socket=handle)
+	.	close socket:(socket=handle:exception="new dontcare")
 	.	use socket
 	close socket
 	quit
@@ -236,7 +239,7 @@ keepalive(line)
 	; Handle keep-alive connections for HTTP/1.0 and HTTP/1.1.
 	;
 
-	for  do servesinglereq(line) quit:connection("CONNECTION")'="KEEP-ALIVE"  read line:timeout quit:'$test  quit:$zeof
+	for  do servesinglereq(line) quit:$data(^TMP("httpm","quit"))  quit:connection("CONNECTION")'="KEEP-ALIVE"  read line:timeout quit:'$test  quit:$zeof
 	quit
 
 errhandler()

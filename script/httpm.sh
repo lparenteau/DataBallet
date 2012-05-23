@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 #
 # httpm
@@ -58,7 +58,20 @@ function stop() {
 	echo "Stoping $progname."
 	checkpid
 	if [ "0" = "$status" ] ; then
-		$gtm_dist/mupip stop `cat $pid`
+		# First, try a gentle stop
+		gtm -run %XCMD 'set ^TMP("httpm","quit")=1'
+		count=0
+		checkpid
+		while [ "0" = "$status" -a $count -lt 10 ]
+		do
+			sleep 1
+			count=$(($count + 1))
+			checkpid
+		done
+		# If still alive, force the process to stop
+		if [ "0" = "$status" ] ; then
+			$gtm_dist/mupip stop `cat $pid`
+		fi
 		echo "Stopped $progname at " `date` " using configfile." >> $log
 	else
 		echo "$progname is not running."

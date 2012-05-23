@@ -16,34 +16,32 @@
 	; along with this program. If not, see <http://www.gnu.org/licenses/>.
 	;
 
+start(commonfile)
+	;
+	; Start the log manager
+	;
+	new count
+	open commonfile:(append:nofixed:wrap:noreadonly:chset="M")
+	use commonfile
+	set ^TMP("httpm","commonlog","count")=0
+	for  do  quit:$data(^TMP("httpm","quit"))
+	.	if '$data(^TMP("httpm","commonlog","msg")) hang 1
+	.	else  do
+	.	.	set count=$order(^TMP("httpm","commonlog","msg",""))
+	.	.	write ^TMP("httpm","commonlog","msg",count),!
+	.	.	kill ^TMP("httpm","commonlog","msg",count)
+	close commonfile
+	quit
+
 common()
 	;
 	; Output a Common Log Format entry for the current request/response to the log file.
 	;
-	new file,old,devices,msg
+	new devices,msg
 	zshow "D":devices
-	set old=$io
-	set file=conf("log")
 	set msg=$zpiece($zpiece(devices("D",2),"=",4),"@",1)_" - - ["_$zdate(response("date"),"DD/MON/YEAR:24:60:SS ")_"+0000] """_request("method")_" "_request("uri")_" "_connection("HTTPVER")_""" "_response("status")_" "_$select($data(response("headers","Content-Length")):response("headers","Content-Length"),1:"0")
-	do dolog()
-	close file	
-	use old
-	quit
-
-dolog()
-	;
-	; Open the chosen file and write the requested message
-	;
-	open file:(append:nofixed:wrap:noreadonly:chset="M")
-	use file:exception="do retry"
-	write msg,!
-	quit
-
-retry()
-	; 
-	; If the file has been updated between the open & write, retry again
-	;
-	zmessage:$zpiece($zstatus,",",3)'="%GTM-E-NOTTOEOFONPUT" +$zstatus
-	close file
-	do dolog()
+	tstart ():serial
+	set ^TMP("httpm","commonlog","count")=^TMP("httpm","commonlog","count")+1
+	set ^TMP("httpm","commonlog","msg",^TMP("httpm","commonlog","count"))=msg
+	tcommit
 	quit
