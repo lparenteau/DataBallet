@@ -42,10 +42,9 @@ handle(docroot,urlroot)
 	if $$FUNC^%UCASE($zparse(file,"TYPE"))'=".HTML" do handle^static(docroot,urlroot,file) quit
 
 	; Parse the file to fill reponse("content") and get the last modified date.
-	new lastmod
 	set response("content")=""
 	new localvar
-	set lastmod=$$loadcontent(docroot,file)
+	set response("lastmod")=$$loadcontent(docroot,file)
 
 	; Set response's content type
 	set response("headers","Content-Type")="text/html"
@@ -64,7 +63,7 @@ handle(docroot,urlroot)
 
 	; If the client's cached copy is no valid, answer a 200 OK (response("content") is already populated).
 	; Otherwise, kill the content so it is not sent.
-	if '$$cacheisvalid^request(lastmod,md5sum) set response("status")="200"
+	if '$$cacheisvalid^request(response("lastmod"),md5sum) set response("status")="200"
 	else  kill response("content")
 
 	; Send Expires header to be 1 day later than current response's date.
@@ -73,7 +72,7 @@ handle(docroot,urlroot)
 	set response("headers","Expires")=$zdate(expdate,"DAY, DD MON YEAR 24:60:SS ")_"GMT"
 
 	; Send Last-Modified header
-	set response("headers","Last-Modified")=$zdate(lastmod,"DAY, DD MON YEAR 24:60:SS ")_"GMT"
+	set response("headers","Last-Modified")=$zdate(response("lastmod"),"DAY, DD MON YEAR 24:60:SS ")_"GMT"
 
 	; Send Accept-Range header
 	set response("headers","Accept-Ranges")="none"
@@ -115,6 +114,7 @@ loadcontent(docroot,file)
 	close cmd
 	set lastmod=$$CDN^%H($zextract(buf,6,7)_"/"_$zextract(buf,9,10)_"/"_$zextract(buf,1,4))_","_$$CTN^%H($zextract(buf,12,19))
 
+	set response("filelist",file)=""
 	; Read the file and fill response("content")
 	new line,token,value,start,end
 	open file:(readonly:chset="M")
@@ -123,7 +123,7 @@ loadcontent(docroot,file)
 	.	set start=$zfind(line,"<%")
 	.	if start=0 do
 	.	.	for  quit:$zfind(line,"{%}")=0  do
-	.	.	.	set line=$zpiece(line,"{%}",1)_$select($data(localvar($zpiece(line,"{%}",2))):localvar($zpiece(line,"{%}",2)),1:"")_$zpiece(line,"{%}",3,$zlength(line))
+	.	.	.	set line=$zpiece(line,"{%}",1)_$get(localvar($zpiece(line,"{%}",2)),"")_$zpiece(line,"{%}",3,$zlength(line))
 	.	.	set response("content")=response("content")_line_delim
 	.	else  do
 	.	.	set end=$zfind(line,"%/>")

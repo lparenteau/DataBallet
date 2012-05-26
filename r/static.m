@@ -35,7 +35,7 @@ handle(docroot,urlroot,file)
 	if '$data(urlroot) new urlroot set urlroot="/"
 	if '$data(file) new file set file=$$getfile(docroot,urlroot) quit:file=""
 
-	new old,cmd,expdate,lastmod,buf,md5sum
+	new old,cmd,expdate,buf,md5sum
 
 	; Get file last modified data and md5sum.
 	set old=$io
@@ -49,17 +49,19 @@ handle(docroot,urlroot,file)
 	read md5sum#32
 	close cmd
 	use old
-	set lastmod=$$CDN^%H($zextract(buf,6,7)_"/"_$zextract(buf,9,10)_"/"_$zextract(buf,1,4))_","_$$CTN^%H($zextract(buf,12,19))
+	set response("lastmod")=$$CDN^%H($zextract(buf,6,7)_"/"_$zextract(buf,9,10)_"/"_$zextract(buf,1,4))_","_$$CTN^%H($zextract(buf,12,19))
+
+	set response("filelist",file)=""
 
 	; If the client's cached copy is no valid, answer a 200 OK with for the file.
-	if '$$cacheisvalid^request(lastmod,md5sum) set response("status")="200" set response("file")=file
+	if '$$cacheisvalid^request(response("lastmod"),md5sum) set response("status")="200" set response("file")=file
 
 	; Send Expires header to be 1 day later than current response's date.
 	set expdate=$zpiece(response("date"),",",1)+1_","_$zpiece(response("date"),",",2)
 	set response("headers","Expires")=$zdate(expdate,"DAY, DD MON YEAR 24:60:SS ")_"GMT"
 
 	; Send Last-Modified header
-	set response("headers","Last-Modified")=$zdate(lastmod,"DAY, DD MON YEAR 24:60:SS ")_"GMT"
+	set response("headers","Last-Modified")=$zdate(response("lastmod"),"DAY, DD MON YEAR 24:60:SS ")_"GMT"
 
 	; Send Accept-Range header
 	set response("headers","Accept-Ranges")="none"

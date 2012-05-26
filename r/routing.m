@@ -20,10 +20,14 @@ route()	;
 	; Route the current request and populate the response
 	;
 
+	; First, check in the cache
+	quit:$$serve^caching()
+
+	; Find the correct route and handle the request
 	new uri,host,handler
 	set uri=request("uri")
-	set host=$select($data(request("headers","HOST")):request("headers","HOST"),1:"*")
-	set:'$data(conf("routing",host)) host=$select($data(conf("routing","*")):"*",1:"")
+	set host=$get(request("headers","HOST"),"*")
+	set:'$data(conf("routing",host)) host="*"
 	; Try to locate a handle fhe requested URI on the requested host.
 	for i=$zlength(uri,"/"):-1:1 do  quit:$data(conf("routing",host,uri))
 	.	set uri=$zpiece(uri,"/",1,i)
@@ -38,5 +42,8 @@ route()	;
 	.	set handler=conf("routing",host,uri)
 
 	xecute handler
+
+	; Cache the response
+	do update^caching()
 
 	quit 
