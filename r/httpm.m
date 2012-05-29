@@ -115,7 +115,7 @@ start()
 	kill ^TMP("httpm")
 	new conf
 	do conf
-	job start^log(conf("log"))
+	job start^log(conf("log")):(output="/dev/null":error="/dev/null")
 	new socket,key,handle,p,socketfd
 	set socket="httpm"
 	open socket:(ZLISTEN=conf("listenon")_":TCP":znoff:zdelay:zbfsize=2048:zibfsize=2048:attach="httpm"):30:"SOCKET"
@@ -150,6 +150,7 @@ serve()
 	; Server web page(s) to a connected client.
 	;
 	set $ZTRAP="do errhandler^httpm"
+	; VIEW "TRACE":1:"^trace"
 	new conf
 	do conf
 	new line,eol,delim,connection
@@ -165,6 +166,7 @@ serve()
 	.	else  if connection("HTTPVER")="HTTP/1.0" set connection("CONNECTION")="CLOSE" do keepalive(line) if 1
 	.	else  if connection("HTTPVER")="" do serve09(line) if 1
 	.	else  do senderr^response("505")
+	; VIEW "TRACE":0:"^trace"
 	quit
 
 serve09(line)

@@ -65,6 +65,10 @@ cacheisvalid(lastmod,etag)
 	;
 	; Check if the client's cached element is still valid for this request.
 	;
+
+	; It is never valid if the client request no-cache.
+	quit:request("headers","CACHE-CONTROL")="no-cache" 0
+
 	new cacheisvalid
 	set cacheisvalid=0
 	if $data(request("headers","IF-NONE-MATCH")),etag=request("headers","IF-NONE-MATCH") set response("status")="304" set cacheisvalid=1

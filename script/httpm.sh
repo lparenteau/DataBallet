@@ -101,6 +101,8 @@ case "$1" in
 	restart)
 		stop
 		start
+		sleep 1
+		status
 		;;
 	status)
 		status

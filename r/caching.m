@@ -20,6 +20,9 @@ update()
 	;
 	; Cache the current request's response
 	;
+
+	; Cache only 200 OK
+	quit:response("status")'="200"
 	new host,uri,ae,te
 	set host=$get(request("headers","HOST"),0)
 	set uri=request("uri")
@@ -45,7 +48,7 @@ serve()
 
 	; Check if cached response is still valid, based on last modification of all files used to generate the original response.
 	new file,cmd,old,buf,lastmod,curlastmod
-	set file=$order(response("filelist",""))
+	set file=$order(^CACHE(host,uri,ae,te,"filelist",""))
 	set cmd="stat"
 	set old=$io
 	set lastmod="0"
@@ -56,6 +59,7 @@ serve()
 	.	close cmd
 	.	set curlastmod=$$CDN^%H($zextract(buf,6,7)_"/"_$zextract(buf,9,10)_"/"_$zextract(buf,1,4))_","_$$CTN^%H($zextract(buf,12,19))
 	.	set:curlastmod]lastmod lastmod=curlastmod
+	.	set file=$order(^CACHE(host,uri,ae,te,"filelist",file))
 	use old
 	quit:lastmod]^CACHE(host,uri,ae,te,"lastmod") 0
 
@@ -65,6 +69,6 @@ serve()
 	do init^response()
 
 	; Check if a 304 could be sent.  If so, remove the content.
-	kill:$$cacheisvalid^request(response("lastmod"),response("headers","Content-MD5")) response("content")
+	kill:$$cacheisvalid^request(response("lastmod"),response("headers","Content-MD5"))=1 response("content"),response("file")
 
 	quit 1

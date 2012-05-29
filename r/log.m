@@ -41,7 +41,7 @@ common()
 	zshow "D":devices
 	set msg=$zpiece($zpiece(devices("D",2),"=",4),"@",1)_" - - ["_$zdate(response("date"),"DD/MON/YEAR:24:60:SS ")_"+0000] """_request("method")_" "_request("uri")_" "_connection("HTTPVER")_""" "_response("status")_" "_$get(response("headers","Content-Length"),"0")
 	tstart ():serial
-	set cnt,^TMP("httpm","commonlog","count")=^TMP("httpm","commonlog","count")+1
+	set (cnt,^TMP("httpm","commonlog","count"))=^TMP("httpm","commonlog","count")+1
 	tcommit
 	set ^TMP("httpm","commonlog","msg",cnt)=msg
 	quit
