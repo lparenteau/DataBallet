@@ -67,11 +67,11 @@ cacheisvalid(lastmod,etag)
 	;
 
 	; It is never valid if the client request no-cache.
-	quit:request("headers","CACHE-CONTROL")="no-cache" 0
+	quit:$get(request("headers","CACHE-CONTROL"))="no-cache" 0
 
 	new cacheisvalid
 	set cacheisvalid=0
-	if $data(request("headers","IF-NONE-MATCH")),etag=request("headers","IF-NONE-MATCH") set response("status")="304" set cacheisvalid=1
+	if $get(request("headers","IF-NONE-MATCH"))=etag set response("status")="304" set cacheisvalid=1
 	else  if $data(request("headers","IF-MODIFIED-SINCE")) do
 	.	new ifmod
 	.	set ifmod=$$FUNC^%DATE($zextract(request("headers","IF-MODIFIED-SINCE"),6,7)_"/"_$zextract(request("headers","IF-MODIFIED-SINCE"),9,11)_"/"_$zextract(request("headers","IF-MODIFIED-SINCE"),13,16))_","_$$CTN^%H($zextract(request("headers","IF-MODIFIED-SINCE"),18,25))
