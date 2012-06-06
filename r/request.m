@@ -58,7 +58,7 @@ methodis(methods)
 	; Method is in the supplied list
 	quit:p'="" 1
 	; Method is not in the supplied list
-	set response("status")="405"
+	do set^response(405)
 	quit 0
 
 cacheisvalid(lastmod,etag)
@@ -71,11 +71,11 @@ cacheisvalid(lastmod,etag)
 
 	new cacheisvalid
 	set cacheisvalid=0
-	if $get(request("headers","IF-NONE-MATCH"))=etag set response("status")="304" set cacheisvalid=1
+	if $get(request("headers","IF-NONE-MATCH"))=etag do set^response(304)  set cacheisvalid=1 if 1
 	else  if $data(request("headers","IF-MODIFIED-SINCE")) do
 	.	new ifmod
 	.	set ifmod=$$FUNC^%DATE($zextract(request("headers","IF-MODIFIED-SINCE"),6,7)_"/"_$zextract(request("headers","IF-MODIFIED-SINCE"),9,11)_"/"_$zextract(request("headers","IF-MODIFIED-SINCE"),13,16))_","_$$CTN^%H($zextract(request("headers","IF-MODIFIED-SINCE"),18,25))
 	.	; If the file's last modification date is older than the if-modified-since date from the request header, send a "304 Not Modified" reponse.
-	.	if lastmod']ifmod set response("status")="304" set cacheisvalid=1
+	.	if $$isolder^date(lastmod,ifmod) do set^response(304)  set cacheisvalid=1
 
 	quit cacheisvalid

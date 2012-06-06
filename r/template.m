@@ -63,7 +63,7 @@ handle(docroot,urlroot)
 
 	; If the client's cached copy is no valid, answer a 200 OK (response("content") is already populated).
 	; Otherwise, kill the content so it is not sent.
-	if '$$cacheisvalid^request(response("lastmod"),md5sum) set response("status")="200"
+	if '$$cacheisvalid^request(response("lastmod"),md5sum) do set^response(200)  if 1
 	else  kill response("content")
 
 	; Send Expires header to be 1 day later than current response's date.
@@ -136,7 +136,7 @@ loadcontent(docroot,file)
 	.	.	.	.	new innerlastmod
 	.	.	.	.	set innerlastmod=$$loadcontent(docroot,docroot_value)
 	.	.	.	.	; Update last modified date if that included file is newer than the base file.
-	.	.	.	.	set:innerlastmod]lastmod lastmod=innerlastmod
+	.	.	.	.	set:$$isnewer^date(innerlastmod,lastmod) lastmod=innerlastmod
 	close file
 	use old
 

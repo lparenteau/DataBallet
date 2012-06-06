@@ -54,7 +54,7 @@ handle(docroot,urlroot,file)
 	set response("filelist",file)=""
 
 	; If the client's cached copy is no valid, answer a 200 OK with for the file.
-	if '$$cacheisvalid^request(response("lastmod"),md5sum) set response("status")="200" set response("file")=file
+	if '$$cacheisvalid^request(response("lastmod"),md5sum) do set^response(200)  set response("file")=file
 
 	; Send Expires header to be 1 day later than current response's date.
 	set expdate=$zpiece(response("date"),",",1)+1_","_$zpiece(response("date"),",",2)
@@ -90,17 +90,15 @@ getfile(docroot,urlroot)
 	; If the request is a directory, but is missing the final "/", permanently redirect it to the correct location
 	set d1=$zparse(file,"DIRECTORY")
 	set d2=$zparse(file_"/","DIRECTORY")
-	if (d1'=d2)&(d1'="")&(d2'="") do
-	.	set response("status")="301"
+	if (d1'=d2)&(d1'="")&(d2'="") do  if 1
+	.	do set^response(301)
 	.	set response("headers","Location")=request("uri")_"/"
 	.	set file=""
 	else  do
 	.	; If the requested URI is a directory, use the default file.
 	.	if $zparse(file,"DIRECTORY")=file set file=file_conf("index")
-	.	set dontcare=$zsearch("")
 	.	; If the file doesn't exist, send a 404 not found.
-	.	if ($zsearch(file)="")!($zextract(file,0,$zlength(docroot))'=docroot) do
-	.	.	set response("status")="404"
-	.	.	set file=""
+	.	set dontcare=$zsearch("")
+	.	if ($zsearch(file)="")!($zextract(file,0,$zlength(docroot))'=docroot) do set^response(404)  set file=""
 
 	quit file

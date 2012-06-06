@@ -22,7 +22,7 @@ update()
 	;
 
 	; Cache only 200 OK
-	quit:response("status")'="200"
+	quit:response("status")'=200
 	new host,uri,ae,te
 	set host=$get(request("headers","HOST"),0)
 	set uri=request("uri")
@@ -58,10 +58,10 @@ serve()
 	.	read buf
 	.	close cmd
 	.	set curlastmod=$$CDN^%H($zextract(buf,6,7)_"/"_$zextract(buf,9,10)_"/"_$zextract(buf,1,4))_","_$$CTN^%H($zextract(buf,12,19))
-	.	set:curlastmod]lastmod lastmod=curlastmod
+	.	set:$$isnewer^date(curlastmod,lastmod) lastmod=curlastmod
 	.	set file=$order(^CACHE(host,uri,ae,te,"filelist",file))
 	use old
-	quit:lastmod]^CACHE(host,uri,ae,te,"lastmod") 0
+	quit:$$isnewer^date(lastmod,^CACHE(host,uri,ae,te,"lastmod")) 0
 
 	; Load the response from cache.
 	kill response

@@ -26,71 +26,72 @@ conf()
 	do setup^routingconf
 
 	; HTTP status codes
-	; set conf("status","100")="Continue"
-	; set conf("status","101")="Switching Protocols"
-	set conf("status","200")="OK"
-	; set conf("status","201")="Created"
-	; set conf("status","202")="Accepted"
-	; set conf("status","203")="Non-Authoritative Information"
-	; set conf("status","204")="No Content"
-	; set conf("status","205")="Reset Content"
-	; set conf("status","206")="Partial Content"
-	; set conf("status","300")="Multiple Choices"
-	set conf("status","301")="Moved Permanently"
-	; set conf("status","302")="Found"
-	; set conf("status","303")="See Other"
-	set conf("status","304")="Not Modified"
-	; set conf("status","305")="Use Proxy"
-	; set conf("status","307")="Temporary Redirect"
-	set conf("status","400")="Bad Request"
-	; set conf("status","401")="Unauthorized"
-	; set conf("status","402")="Payment Required"
-	; set conf("status","403")="Forbidden"
-	set conf("status","404")="Not Found"
-	set conf("status","404","data")="<html><head><title>404 : Page Not Found</title></head><body><h1>404 : Page Not Found</h1></body></html>"
-	set conf("status","404","ct")="text/html"
-	set conf("status","404","cl")=$zlength(conf("status","404","data"))
-	set conf("status","405")="Method Not Allowed"
-	; set conf("status","406")="Not Acceptable"
-	; set conf("status","407")="Proxy Authentication Required"
-	set conf("status","408")="Request Timeout"
-	; set conf("status","409")="Conflict"
-	; set conf("status","410")="Gone"
-	; set conf("status","411")="Length Required"
-	; set conf("status","412")="Precondition Failed"
-	; set conf("status","413")="Request Entity Too Large"
-	; set conf("status","414")="Request-URI Too Long"
-	; set conf("status","415")="Unsupported Media Type"
-	; set conf("status","416")="Requested Range Not Satisfiable"
-	; set conf("status","417")="Expectation Failed"
-	; set conf("status","500")="Internal Server Error"
-	; set conf("status","501")="Not Implemented"
-	; set conf("status","502")="Bad Gateway"
-	; set conf("status","503")="Service Unavailable"
-	; set conf("status","504")="Gateway Timeout"
-	set conf("status","505")="HTTP Version Not Supported"
-	set conf("status","505","data")="<html><head><title>505 : HTTP Version Not Supported</title></head><body><h1>505 : HTTP Version Not Supported</h1></body></html>"
-	set conf("status","505","ct")="text/html"
-	set conf("status","505","cl")=$zlength(conf("status","505","data"))
+	; set conf("status",100)="Continue"
+	; set conf("status",101)="Switching Protocols"
+	set conf("status",200)="OK"
+	; set conf("status",201)="Created"
+	; set conf("status",202)="Accepted"
+	; set conf("status",203)="Non-Authoritative Information"
+	; set conf("status",204)="No Content"
+	; set conf("status",205)="Reset Content"
+	; set conf("status",206)="Partial Content"
+	; set conf("status",300)="Multiple Choices"
+	set conf("status",301)="Moved Permanently"
+	; set conf("status",302)="Found"
+	; set conf("status",303)="See Other"
+	set conf("status",304)="Not Modified"
+	; set conf("status",305)="Use Proxy"
+	; set conf("status",307)="Temporary Redirect"
+	set conf("status",400)="Bad Request"
+	; set conf("status",401)="Unauthorized"
+	; set conf("status",402)="Payment Required"
+	; set conf("status",403)="Forbidden"
+	set conf("status",404)="Not Found"
+	set conf("status",404,"data")="<html><head><title>404 : Page Not Found</title></head><body><h1>404 : Page Not Found</h1></body></html>"
+	set conf("status",404,"ct")="text/html"
+	set conf("status",404,"cl")=$zlength(conf("status","404","data"))
+	set conf("status",405)="Method Not Allowed"
+	; set conf("status",406)="Not Acceptable"
+	; set conf("status",407)="Proxy Authentication Required"
+	set conf("status",408)="Request Timeout"
+	; set conf("status",409)="Conflict"
+	; set conf("status",410)="Gone"
+	; set conf("status",411)="Length Required"
+	; set conf("status",412)="Precondition Failed"
+	; set conf("status",413)="Request Entity Too Large"
+	; set conf("status",414)="Request-URI Too Long"
+	; set conf("status",415)="Unsupported Media Type"
+	; set conf("status",416)="Requested Range Not Satisfiable"
+	; set conf("status",417)="Expectation Failed"
+	; set conf("status",500)="Internal Server Error"
+	; set conf("status",501)="Not Implemented"
+	; set conf("status",502)="Bad Gateway"
+	; set conf("status",503)="Service Unavailable"
+	; set conf("status",504)="Gateway Timeout"
+	set conf("status",505)="HTTP Version Not Supported"
+	set conf("status",505,"data")="<html><head><title>505 : HTTP Version Not Supported</title></head><body><h1>505 : HTTP Version Not Supported</h1></body></html>"
+	set conf("status",505,"ct")="text/html"
+	set conf("status",505,"cl")=$zlength(conf("status","505","data"))
 
 	; Content-types mapping
 	set conf("ct",".htm")="text/html"
-	set conf("ct",".html")="text/html"
+	set conf("ct",".html")=conf("ct",".htm")
 	set conf("ct",".css")="text/css"
 	set conf("ct",".xml")="text/xml"
 	set conf("ct",".txt")="text/plain"
 	set conf("ct",".js")="application/javascript"
 	set conf("ct",".jpg")="image/jpeg"
-	set conf("ct",".jpeg")="image/jpeg"
+	set conf("ct",".jpeg")=conf("ct",".jpg")
 	set conf("ct",".gif")="image/gif"
 	set conf("ct",".png")="image/png"
+	set conf("ct",".ico")="image/vnd.microsoft.icon"
 
 	; Define compressible content-type
-	set conf("compressible","text/html")=""
-	set conf("compressible","text/css")=""
-	set conf("compressible","text/xml")=""
-	set conf("compressible","text/plain")=""
-	set conf("compressible","application/javascript")=""
+	set conf("compressible","text/html")=1
+	set conf("compressible","text/css")=1
+	set conf("compressible","text/xml")=1
+	set conf("compressible","text/plain")=1
+	set conf("compressible","application/javascript")=1
 
 	quit
 
@@ -216,7 +217,7 @@ servesinglereq(line)
 
 	; Read all request
 	for  read line:timeout quit:'$test  quit:line=$char(13)  quit:$zeof  do parsehdrs^request(line)
-	if ('$test)!($zeof) set response("status")="408"
+	if ('$test)!($zeof) do set^response(408)  if 1
 	else  do
 	.	; If the request advertised a body, read it.
 	.	if $data(request("headers","CONTENT-LENGTH")) do

@@ -16,6 +16,19 @@
 	; along with this program. If not, see <http://www.gnu.org/licenses/>.
 	;
 
+set(status)
+	;
+	; Fill the current response with default stuff for the requested status
+	;
+	set response("status")=status
+
+	if $data(conf("status",status,"data")) do
+	.	set response("headers","Content-Type")=conf("status",status,"ct")
+	.	set response("headers","Content-Length")=conf("status",status,"cl")
+	.	set response("content")=conf("status",status,"data")
+
+	quit
+
 senderr(status)
 	;
 	; Send an HTTP error response
@@ -23,11 +36,8 @@ senderr(status)
 
 	; Populate the response
 	new response
-	set response("status")=status
 
-	if $data(conf("status",status,"data")) do
-	.	set response("headers","Content-Type")=conf("status",status,"ct")
-	.	set response("headers","Content-Length")=conf("status",status,"cl")
+	do set^response(status)
 
 	; Send response headers
 	do sendresphdr()
@@ -36,7 +46,7 @@ senderr(status)
 	write eol
 
 	; Send error data, if any
-	write:$data(conf("status",status,"data")) conf("status",status,"data")
+	write:$data(response("content")) response("content")
 
 	; Log request/response
 	set:'$data(response("date")) response("date")=$horolog
@@ -173,6 +183,7 @@ sendcontent(data)
 	.	set cmd="encoding"
 	.	if response("encoding")="gzip" set arg=" -f"
 	.	else  set arg=""
+	.	; The exception handling is a workaround required until GTM-7351 gets fixed.
 	.	open cmd:(exception="new dontcare":command=response("encoding")_arg:fixed:wrap)::"PIPE"
 	.	use cmd
 	.	write data
