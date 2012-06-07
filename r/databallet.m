@@ -1,19 +1,19 @@
 	;
-	; httpm
+	; This file is part of DataBallet.
 	; Copyright (C) 2012 Laurent Parenteau <laurent.parenteau@gmail.com>
 	;
-	; This program is free software: you can redistribute it and/or modify
+	; DataBallet is free software: you can redistribute it and/or modify
 	; it under the terms of the GNU Affero General Public License as published by
 	; the Free Software Foundation, either version 3 of the License, or
 	; (at your option) any later version.
 	;
-	; This program is distributed in the hope that it will be useful,
+	; DataBallet is distributed in the hope that it will be useful,
 	; but WITHOUT ANY WARRANTY; without even the implied warranty of
 	; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 	; GNU Affero General Public License for more details.
 	;
 	; You should have received a copy of the GNU Affero General Public License
-	; along with this program. If not, see <http://www.gnu.org/licenses/>.
+	; along with DataBallet. If not, see <http://www.gnu.org/licenses/>.
 	;
 
 conf()
@@ -99,11 +99,11 @@ envconf()
 	;
 	; Configuration from environment variable
 	;
-	set conf("serverstring")=$ztrnlnm("httpm_server","","","","","VALUE")
-	set conf("listenon")=$ztrnlnm("httpm_port","","","","","VALUE")
-	set conf("index")=$ztrnlnm("httpm_index","","","","","VALUE")
-	set conf("errorlog")=$ztrnlnm("httpm_errorlog","","","","","VALUE")
-	set conf("log")=$ztrnlnm("httpm_log","","","","","VALUE")
+	set conf("serverstring")=$ztrnlnm("databallet_server","","","","","VALUE")
+	set conf("listenon")=$ztrnlnm("databallet_port","","","","","VALUE")
+	set conf("index")=$ztrnlnm("databallet_index","","","","","VALUE")
+	set conf("errorlog")=$ztrnlnm("databallet_errorlog","","","","","VALUE")
+	set conf("log")=$ztrnlnm("databallet_log","","","","","VALUE")
 
 	quit
 
@@ -111,15 +111,15 @@ start()
 	;
 	; Start the HTTP server.
 	;
-	set $ZTRAP="do errhandler^httpm"
+	set $ZTRAP="do errhandler^databallet"
 	; Cleanup scratch global
-	kill ^TMP("httpm")
+	kill ^TMP("DataBallet")
 	new conf
 	do conf
 	job start^log(conf("log")):(output="/dev/null":error="/dev/null")
 	new socket,key,handle,p,socketfd
-	set socket="httpm"
-	open socket:(ZLISTEN=conf("listenon")_":TCP":znoff:zdelay:zbfsize=2048:zibfsize=2048:attach="httpm"):30:"SOCKET"
+	set socket="databallet"
+	open socket:(ZLISTEN=conf("listenon")_":TCP":znoff:zdelay:zbfsize=2048:zibfsize=2048:attach="databallet"):30:"SOCKET"
 	use socket
 	write /listen(5)
 	; When a connection will be made and the connected socket created, it will use the next number, so we can use that to
@@ -133,14 +133,14 @@ start()
 	close p
 	use socket
 	set socketfd=socketfd+1
-	for  do  quit:$data(^TMP("httpm","quit"))
+	for  do  quit:$data(^TMP("DataBallet","quit"))
 	.	set key=""
-	.	for  do  quit:key'=""  quit:$data(^TMP("httpm","quit"))
+	.	for  do  quit:key'=""  quit:$data(^TMP("DataBallet","quit"))
 	.	.	write /wait(1)
 	.	.	set key=$key
 	.	set handle=$piece(key,"|",2)
 	.	; Spawn a new process to handle the connection then close the connected socket as we won't use it from here.
-	.	zsystem "$gtm_dist/mumps -run serve^httpm <&"_socketfd_" >&"_socketfd_" 2>>"_conf("errorlog")_" &"
+	.	zsystem "$gtm_dist/mumps -run serve^databallet <&"_socketfd_" >&"_socketfd_" 2>>"_conf("errorlog")_" &"
 	.	close socket:(socket=handle:exception="new dontcare")
 	.	use socket
 	close socket
@@ -150,7 +150,7 @@ serve()
 	;
 	; Server web page(s) to a connected client.
 	;
-	set $ZTRAP="do errhandler^httpm"
+	set $ZTRAP="do errhandler^databallet"
 	; VIEW "TRACE":1:"^trace"
 	new conf
 	do conf
@@ -242,7 +242,7 @@ keepalive(line)
 	; Handle keep-alive connections for HTTP/1.0 and HTTP/1.1.
 	;
 
-	for  do servesinglereq(line) quit:$data(^TMP("httpm","quit"))  quit:connection("CONNECTION")'="KEEP-ALIVE"  read line:timeout quit:'$test  quit:$zeof
+	for  do servesinglereq(line) quit:$data(^TMP("DataBallet","quit"))  quit:connection("CONNECTION")'="KEEP-ALIVE"  read line:timeout quit:'$test  quit:$zeof
 	quit
 
 errhandler()
