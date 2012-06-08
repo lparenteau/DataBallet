@@ -22,8 +22,7 @@ conf()
 	;
 
 	; User configuration.
-	do envconf
-	do setup^routingconf
+	do ^userconf
 
 	; HTTP status codes
 	; set conf("status",100)="Continue"
@@ -93,17 +92,8 @@ conf()
 	set conf("compressible","text/plain")=1
 	set conf("compressible","application/javascript")=1
 
-	quit
-
-envconf()
-	;
-	; Configuration from environment variable
-	;
-	set conf("serverstring")=$ztrnlnm("databallet_server","","","","","VALUE")
-	set conf("listenon")=$ztrnlnm("databallet_port","","","","","VALUE")
-	set conf("index")=$ztrnlnm("databallet_index","","","","","VALUE")
-	set conf("errorlog")=$ztrnlnm("databallet_errorlog","","","","","VALUE")
-	set conf("log")=$ztrnlnm("databallet_log","","","","","VALUE")
+	; DataBallet version : YYYYMMDD
+	set databalletver=20120607
 
 	quit
 

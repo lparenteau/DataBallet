@@ -48,7 +48,7 @@ function start() {
 		echo "$progname is already running."
 	else
 		rm -f $pid
-		echo "Starting $progname at " `date` " using configfile." >> $log
+		echo "Starting $progname at " `date` " using $configfile." >> $log
 		TZ="Europe/London" nohup $gtm_dist/mumps -run start^databallet < /dev/null >> $log 2>&1 &
 		echo $! > $pid
 	fi
@@ -72,7 +72,7 @@ function stop() {
 		if [ "0" = "$status" ] ; then
 			$gtm_dist/mupip stop `cat $pid`
 		fi
-		echo "Stopped $progname at " `date` " using configfile." >> $log
+		echo "Stopped $progname at " `date` " using $configfile." >> $log
 	else
 		echo "$progname is not running."
 	fi

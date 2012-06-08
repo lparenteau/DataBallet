@@ -116,9 +116,6 @@ sendresphdr()
 	; Send the status line.
 	write connection("HTTPVER")_" "_response("status")_" "_conf("status",response("status"))_eol
 
-	; Send the Server header.
-	write "Server: "_conf("serverstring")_eol
-
 	; Send all headers present in the response.
 	new header
 	set header=$order(response("headers",""))
@@ -205,5 +202,7 @@ init()
 	;
 	set response("date")=$horolog
 	set response("headers","Date")=$zdate(response("date"),"DAY, DD MON YEAR 24:60:SS ")_"GMT"
+	set response("headers","Server")="DataBallet"
+	set:$get(conf("serverstring"))="full" response("headers","Server")=response("headers","Server")_"-"_databalletver_" ("_$zversion_")"
 	quit
 

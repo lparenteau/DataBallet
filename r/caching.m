@@ -23,6 +23,9 @@ update()
 
 	; Cache only 200 OK
 	quit:response("status")'=200
+	; Do not cache if the response handler do not want us to
+	quit:$get(response("headers","Cache-Control"))="no-cache"
+
 	new host,uri,ae,te
 	set host=$get(request("headers","HOST"),0)
 	set uri=request("uri")
