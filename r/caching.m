@@ -64,6 +64,14 @@ serve()
 	.	set:$$isnewer^date(curlastmod,lastmod) lastmod=curlastmod
 	.	set file=$order(^CACHE(host,uri,ae,te,"filelist",file))
 	use old
+	; Also, check for content based on globals.  Every global listed should contain a $H value, representing the last-modified date of
+	; some global variable that was used to construct the response.
+	new glo
+	set glo=$order(^CACHE(host,uri,ae,te,"glolist",""))
+	for  quit:glo=""  do
+	.	set curlastmod=@glo
+	.	set:$$isnewer^date(curlastmod,lastmod) lastmod=curlastmod
+	.	set glo=$order(^CACHE(host,uri,ae,te,"glolist",glo))
 	quit:$$isnewer^date(lastmod,^CACHE(host,uri,ae,te,"lastmod")) 0
 
 	; Load the response from cache.

@@ -24,14 +24,15 @@ route()	;
 	quit:$$serve^caching()
 
 	; Find the correct route and handle the request
-	new uri,host,handler
+	new uri,host,handler,len
 	set uri=request("uri")
 	set host=$get(request("headers","HOST"),"*")
 	set:'$data(conf("routing",host)) host="*"
-	; Try to locate a handle fhe requested URI on the requested host.
+	; Try to locate a handler for the requested URI on the requested host.
 	for i=$zlength(uri,"/"):-1:1 do  quit:$data(conf("routing",host,uri))
 	.	set uri=$zpiece(uri,"/",1,i)
-	.	set:uri="" uri="/"
+	.	set len=$zlength(uri)
+	.	set:$zextract(uri,len,len)'="/" uri=uri_"/"
 	if $data(conf("routing",host,uri)) set handler=conf("routing",host,uri)
 	; Otherwise, try that URI on the default host (ie. '*').
 	else  do
