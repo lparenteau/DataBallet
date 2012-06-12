@@ -30,13 +30,22 @@ handle(docroot,urlroot)
 	; Default urlroot
 	if '$data(urlroot) new urlroot set urlroot="/"
 
-	if request("uri")=(urlroot_"atom.xml") do atomfeed(urlroot)  quit
-	if request("uri")=urlroot do main(docroot,urlroot)  quit
-	if request("uri")=(urlroot_"archive/") do archive(docroot,urlroot)  quit
-	if request("uri")](urlroot_"posts/") do post(docroot)  quit
+	; Return an atom feed for a "/<urlroot>/atom.xml" request,
+	; an archive/all posts HTML page for a "/<urlroot>/archive/" request,
+	; a specific post HTML page for a "/<urlroot>/posts/<id>" request,
+	; and a home HTML page with the latest 5 elements for a "/<urlroot>/" request.
+	if request("uri")=(urlroot_"atom.xml") do atomfeed(urlroot)  if 1
+	else  if request("uri")=urlroot do main(docroot,urlroot)  if 1
+	else  if request("uri")=(urlroot_"archive/") do archive(docroot,urlroot)  if 1
+	else  if request("uri")](urlroot_"posts/") do post(docroot)  if 1
+	; Everything else is 404 Not Found.
+	else  do set^response(404) quit
 
-	; Othetwise, it is not a valid request
-	do set^response(404)
+	; Get md5sum of the generated content.
+	do md5sum^response()
+
+	; Validate the cache
+	do validatecache^request()
 
 	quit
 
@@ -84,43 +93,6 @@ atomfeed(urlroot)
 
 	set response("headers","Content-Type")="application/atom+xml"
 
-	; Get md5sum of the generated content.
-	new old,cmd,md5sum
-	set old=$io
-	set cmd="md5sum"
-	open cmd:(command="md5sum -")::"PIPE"
-	use cmd
-	write response("content")
-	write /eof
-	read md5sum#32
-	close cmd
-	use old
-
-	; If the client's cached copy is no valid, answer a 200 OK (response("content") is already populated).
-	; Otherwise, kill the content so it is not sent.
-	if '$$cacheisvalid^request(response("lastmod"),md5sum) do set^response(200)  if 1
-	else  kill response("content")
-
-	; Send Expires header to be 1 day later than current response's date.
-	new expdate
-	set expdate=$zpiece(response("date"),",",1)+1_","_$zpiece(response("date"),",",2)
-	set response("headers","Expires")=$zdate(expdate,"DAY, DD MON YEAR 24:60:SS ")_"GMT"
-
-	; Send Last-Modified header
-	set response("headers","Last-Modified")=$zdate(response("lastmod"),"DAY, DD MON YEAR 24:60:SS ")_"GMT"
-
-	; Send Accept-Range header
-	set response("headers","Accept-Ranges")="none"
-
-	; Send Cache-Control's max-age to be 1 day.
-	set response("headers","Cache-Control")="max-age = 86400"
-
-	; Send Content-MD5
-	set response("headers","Content-MD5")=md5sum
-
-	; Send an ETag
-	set response("headers","ETag")=md5sum
-
 	quit
 
 main(docroot,urlroot)
@@ -132,14 +104,14 @@ main(docroot,urlroot)
 	set response("content")=""
 	; Use template engine to load the header of the page.  Convention is to use '<docroot>/start.html', which can include a <title>{%}title{%}</title> line in there
 	; to make use of ^NEWS("title")
-	set localvar("title")=^NEWS("title")
+	set localvar("title")=$get(^NEWS("title"))
 	set response("lastmod")=$$loadcontent^template(docroot,docroot_"/start.html")
 
 	; Populate content from database, up to 5 items, if any
 	new postid,cnt
 	set postid=$order(^NEWS("post",""))
 	set cnt=0
-	set response("content")=response("content")_"<h2>"_^NEWS("title")_"</h2>"
+	set response("content")=response("content")_"<h2>"_$get(^NEWS("title"))_"</h2>"
 	for  quit:postid=""  quit:cnt=5  do
 	.	set response("content")=response("content")_"<h3>"_^NEWS("post",postid,"title")_"</h3>"
 	.	set response("content")=response("content")_"<p>"_^NEWS("post",postid,"content")_"</p>"
@@ -161,43 +133,6 @@ main(docroot,urlroot)
 	; Set response's content type
 	set response("headers","Content-Type")="text/html"
 
-	; Get md5sum of the generated content.
-	new old,cmd,md5sum
-	set old=$io
-	set cmd="md5sum"
-	open cmd:(command="md5sum -")::"PIPE"
-	use cmd
-	write response("content")
-	write /eof
-	read md5sum#32
-	close cmd
-	use old
-
-	; If the client's cached copy is no valid, answer a 200 OK (response("content") is already populated).
-	; Otherwise, kill the content so it is not sent.
-	if '$$cacheisvalid^request(response("lastmod"),md5sum) do set^response(200)  if 1
-	else  kill response("content")
-
-	; Send Expires header to be 1 day later than current response's date.
-	new expdate
-	set expdate=$zpiece(response("date"),",",1)+1_","_$zpiece(response("date"),",",2)
-	set response("headers","Expires")=$zdate(expdate,"DAY, DD MON YEAR 24:60:SS ")_"GMT"
-
-	; Send Last-Modified header
-	set response("headers","Last-Modified")=$zdate(response("lastmod"),"DAY, DD MON YEAR 24:60:SS ")_"GMT"
-
-	; Send Accept-Range header
-	set response("headers","Accept-Ranges")="none"
-
-	; Send Cache-Control's max-age to be 1 day.
-	set response("headers","Cache-Control")="max-age = 86400"
-
-	; Send Content-MD5
-	set response("headers","Content-MD5")=md5sum
-
-	; Send an ETag
-	set response("headers","ETag")=md5sum
-
 	quit
 
 archive(docroot,urlroot)
@@ -209,14 +144,14 @@ archive(docroot,urlroot)
 	set response("content")=""
 	; Use template engine to load the header of the page.  Convention is to use '<docroot>/start.html', which can include a <title>{%}title{%}</title> line in there
 	; to make use of ^NEWS("title")
-	set localvar("title")=^NEWS("title")_" | Archive"
+	set localvar("title")=$get(^NEWS("title"))_" | Archive"
 	set response("lastmod")=$$loadcontent^template(docroot,docroot_"/start.html")
 
 	; List all posts from database
 	new postid,cnt
 	set postid=$order(^NEWS("post",""))
 	set cnt=0
-	set response("content")=response("content")_"<h2>"_^NEWS("title")_"</h2><h3>Archive</h3>"
+	set response("content")=response("content")_"<h2>"_$get(^NEWS("title"))_"</h2><h3>Archive</h3>"
 	for  quit:postid=""  do
 	.	set response("content")=response("content")_"<a href=""http://"_request("headers","HOST")_urlroot_"posts/"_postid_""">"_^NEWS("post",postid,"title")_"</a><br>"
 	.	; Update last modified date if needed.
@@ -233,43 +168,6 @@ archive(docroot,urlroot)
 	; Set response's content type
 	set response("headers","Content-Type")="text/html"
 
-	; Get md5sum of the generated content.
-	new old,cmd,md5sum
-	set old=$io
-	set cmd="md5sum"
-	open cmd:(command="md5sum -")::"PIPE"
-	use cmd
-	write response("content")
-	write /eof
-	read md5sum#32
-	close cmd
-	use old
-
-	; If the client's cached copy is no valid, answer a 200 OK (response("content") is already populated).
-	; Otherwise, kill the content so it is not sent.
-	if '$$cacheisvalid^request(response("lastmod"),md5sum) do set^response(200)  if 1
-	else  kill response("content")
-
-	; Send Expires header to be 1 day later than current response's date.
-	new expdate
-	set expdate=$zpiece(response("date"),",",1)+1_","_$zpiece(response("date"),",",2)
-	set response("headers","Expires")=$zdate(expdate,"DAY, DD MON YEAR 24:60:SS ")_"GMT"
-
-	; Send Last-Modified header
-	set response("headers","Last-Modified")=$zdate(response("lastmod"),"DAY, DD MON YEAR 24:60:SS ")_"GMT"
-
-	; Send Accept-Range header
-	set response("headers","Accept-Ranges")="none"
-
-	; Send Cache-Control's max-age to be 1 day.
-	set response("headers","Cache-Control")="max-age = 86400"
-
-	; Send Content-MD5
-	set response("headers","Content-MD5")=md5sum
-
-	; Send an ETag
-	set response("headers","ETag")=md5sum
-
 	quit
 
 post(docroot)
@@ -279,14 +177,15 @@ post(docroot)
 	new localvar,lastmod,postid
 
 	set postid=$zpiece(request("uri"),"/",4,4)
+	if '$data(^NEWS("post",postid)) do set^response(404) quit
 	set response("content")=""
 	; Use template engine to load the header of the page.  Convention is to use '<docroot>/start.html', which can include a <title>{%}title{%}</title> line in there
 	; to make use of ^NEWS("title")
-	set localvar("title")=^NEWS("title")_" | "_^NEWS("post",postid,"title")
+	set localvar("title")=$get(^NEWS("title"))_" | "_^NEWS("post",postid,"title")
 	set response("lastmod")=$$loadcontent^template(docroot,docroot_"/start.html")
 
 	; A post from database
-	set response("content")=response("content")_"<h2>"_^NEWS("title")_"</h2>"
+	set response("content")=response("content")_"<h2>"_$get(^NEWS("title"))_"</h2>"
 	set response("content")=response("content")_"<h3>"_^NEWS("post",postid,"title")_"</h3>"
 	set response("content")=response("content")_"<p>"_^NEWS("post",postid,"content")_"</p>"
 	; Update last modified date if needed.
@@ -300,44 +199,5 @@ post(docroot)
 
 	; Set response's content type
 	set response("headers","Content-Type")="text/html"
-
-	; Get md5sum of the generated content.
-	new old,cmd,md5sum
-	set old=$io
-	set cmd="md5sum"
-	open cmd:(command="md5sum -")::"PIPE"
-	use cmd
-	write response("content")
-	write /eof
-	read md5sum#32
-	close cmd
-	use old
-
-	; If the client's cached copy is no valid, answer a 200 OK (response("content") is already populated).
-	; Otherwise, kill the content so it is not sent.
-	if '$$cacheisvalid^request(response("lastmod"),md5sum) do set^response(200)  if 1
-	else  kill response("content")
-
-	; Send Expires header to be 1 day later than current response's date.
-	new expdate
-	set expdate=$zpiece(response("date"),",",1)+1_","_$zpiece(response("date"),",",2)
-	set response("headers","Expires")=$zdate(expdate,"DAY, DD MON YEAR 24:60:SS ")_"GMT"
-
-	; Send Last-Modified header
-	set response("headers","Last-Modified")=$zdate(response("lastmod"),"DAY, DD MON YEAR 24:60:SS ")_"GMT"
-
-	; Send Accept-Range header
-	set response("headers","Accept-Ranges")="none"
-
-	; Send Cache-Control's max-age to be 1 day.
-	set response("headers","Cache-Control")="max-age = 86400"
-
-	; Send Content-MD5
-	set response("headers","Content-MD5")=md5sum
-
-	; Send an ETag
-	set response("headers","ETag")=md5sum
-
-	quit
 
 	quit

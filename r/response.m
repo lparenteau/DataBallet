@@ -112,6 +112,7 @@ sendresphdr()
 	.	.	.	if 1
 	.	.	else  set:$data(response("content")) length=$zlength(response("content"))
 	.	.	set:$data(length) response("headers","Content-Length")=length
+	set:$data(response("lastmod")) response("headers","Last-Modified")=$zdate(response("lastmod"),"DAY, DD MON YEAR 24:60:SS ")_"GMT"
 
 	; Send the status line.
 	write connection("HTTPVER")_" "_response("status")_" "_conf("status",response("status"))_eol
@@ -200,9 +201,35 @@ init()
 	;
 	; Initialiaze the response headers
 	;
+	new expdate
 	set response("date")=$horolog
 	set response("headers","Date")=$zdate(response("date"),"DAY, DD MON YEAR 24:60:SS ")_"GMT"
 	set response("headers","Server")="DataBallet"
+	set response("headers","Accept-Ranges")="none"
 	set:$get(conf("serverstring"))="full" response("headers","Server")=response("headers","Server")_"-"_databalletver_" ("_$zversion_")"
+	set expdate=$zpiece(response("date"),",",1)+1_","_$zpiece(response("date"),",",2)
+	set response("headers","Expires")=$zdate(expdate,"DAY, DD MON YEAR 24:60:SS ")_"GMT"
+	set response("headers","Cache-Control")="max-age = 86400"
 	quit
 
+md5sum()
+	;
+	; Calculate the MD5SUM of the response's content (or file)
+	;
+	new old,cmd,file
+	set old=$io
+	set cmd="md5sum"
+	set file=$get(response("file"),"-")
+	open cmd:(command="md5sum "_file)::"PIPE"
+	use cmd
+	if '$data(response("file")) do
+	.	write response("content")
+	.	write /eof
+	read response("headers","Content-MD5")#32
+	close cmd
+	use old
+
+	; Set ETag
+	set response("headers","ETag")=response("headers","Content-MD5")
+
+	quit

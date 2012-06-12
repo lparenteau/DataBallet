@@ -123,11 +123,12 @@ start()
 	close p
 	use socket
 	set socketfd=socketfd+1
-	for  do  quit:$data(^TMP("DataBallet","quit"))
+	for  quit:$data(^TMP("DataBallet","quit"))  do
 	.	set key=""
 	.	for  do  quit:key'=""  quit:$data(^TMP("DataBallet","quit"))
 	.	.	write /wait(1)
 	.	.	set key=$key
+	.	quit:$data(^TMP("DataBallet","quit"))
 	.	set handle=$piece(key,"|",2)
 	.	; Spawn a new process to handle the connection then close the connected socket as we won't use it from here.
 	.	zsystem "$gtm_dist/mumps -run serve^databallet <&"_socketfd_" >&"_socketfd_" 2>>"_conf("errorlog")_" &"

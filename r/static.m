@@ -35,45 +35,23 @@ handle(docroot,urlroot,file)
 	if '$data(urlroot) new urlroot set urlroot="/"
 	if '$data(file) new file set file=$$getfile(docroot,urlroot) quit:file=""
 
-	new old,cmd,expdate,buf,md5sum
+	set response("filelist",file)=""
+	set response("file")=file
 
-	; Get file last modified data and md5sum.
+	; Get file last modified date & md5sum.
+	do md5sum^response()
+	new old,cmd,buf
 	set old=$io
 	set cmd="cmd"
 	open cmd:(command="stat -c %y "_file:readonly)::"PIPE"
 	use cmd
 	read buf
 	close cmd
-	open cmd:(command="md5sum "_file:readonly)::"PIPE"
-	use cmd
-	read md5sum#32
-	close cmd
 	use old
 	set response("lastmod")=$$CDN^%H($zextract(buf,6,7)_"/"_$zextract(buf,9,10)_"/"_$zextract(buf,1,4))_","_$$CTN^%H($zextract(buf,12,19))
 
-	set response("filelist",file)=""
-
-	; If the client's cached copy is no valid, answer a 200 OK with for the file.
-	if '$$cacheisvalid^request(response("lastmod"),md5sum) do set^response(200)  set response("file")=file
-
-	; Send Expires header to be 1 day later than current response's date.
-	set expdate=$zpiece(response("date"),",",1)+1_","_$zpiece(response("date"),",",2)
-	set response("headers","Expires")=$zdate(expdate,"DAY, DD MON YEAR 24:60:SS ")_"GMT"
-
-	; Send Last-Modified header
-	set response("headers","Last-Modified")=$zdate(response("lastmod"),"DAY, DD MON YEAR 24:60:SS ")_"GMT"
-
-	; Send Accept-Range header
-	set response("headers","Accept-Ranges")="none"
-
-	; Send Cache-Control's max-age to be 1 day.
-	set response("headers","Cache-Control")="max-age = 86400"
-
-	; Send Content-MD5
-	set response("headers","Content-MD5")=md5sum
-
-	; Send an ETag
-	set response("headers","ETag")=md5sum
+	; Validate the cache
+	do validatecache^request()
 
 	quit
 

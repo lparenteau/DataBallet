@@ -61,21 +61,25 @@ methodis(methods)
 	do set^response(405)
 	quit 0
 
-cacheisvalid(lastmod,etag)
+validatecache()
 	;
-	; Check if the client's cached element is still valid for this request.
+	; Validate the cachem, based on request and response.
 	;
+	new status
+	set status=200
 
 	; It is never valid if the client request no-cache.
-	quit:$get(request("headers","CACHE-CONTROL"))="no-cache" 0
+	if $get(request("headers","CACHE-CONTROL"))'="no-cache" do
+	.	if $get(request("headers","IF-NONE-MATCH"))=etag set status=304
+	.	else  if $data(request("headers","IF-MODIFIED-SINCE")) do
+	.	.	new ifmod
+	.	.	set ifmod=$$FUNC^%DATE($zextract(request("headers","IF-MODIFIED-SINCE"),6,7)_"/"_$zextract(request("headers","IF-MODIFIED-SINCE"),9,11)_"/"_$zextract(request("headers","IF-MODIFIED-SINCE"),13,16))_","_$$CTN^%H($zextract(request("headers","IF-MODIFIED-SINCE"),18,25))
+	.	.	; If the file's last modification date is older than the if-modified-since date from the request header, send a "304 Not Modified" reponse.
+	.	.	if $$isolder^date(lastmod,ifmod) set status=304
 
-	new cacheisvalid
-	set cacheisvalid=0
-	if $get(request("headers","IF-NONE-MATCH"))=etag do set^response(304)  set cacheisvalid=1 if 1
-	else  if $data(request("headers","IF-MODIFIED-SINCE")) do
-	.	new ifmod
-	.	set ifmod=$$FUNC^%DATE($zextract(request("headers","IF-MODIFIED-SINCE"),6,7)_"/"_$zextract(request("headers","IF-MODIFIED-SINCE"),9,11)_"/"_$zextract(request("headers","IF-MODIFIED-SINCE"),13,16))_","_$$CTN^%H($zextract(request("headers","IF-MODIFIED-SINCE"),18,25))
-	.	; If the file's last modification date is older than the if-modified-since date from the request header, send a "304 Not Modified" reponse.
-	.	if $$isolder^date(lastmod,ifmod) do set^response(304)  set cacheisvalid=1
+	; If the client's cache entry is still valid, remove any content from response.
+	if status=304 kill response("content"),response("file")
 
-	quit cacheisvalid
+	do set^response(status)
+
+	quit

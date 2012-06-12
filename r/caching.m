@@ -79,7 +79,7 @@ serve()
 	merge response=^CACHE(host,uri,ae,te)
 	do init^response()
 
-	; Check if a 304 could be sent.  If so, remove the content.
-	kill:$$cacheisvalid^request(response("lastmod"),response("headers","Content-MD5"))=1 response("content"),response("file")
+	; Validate the client's cache.
+	do validatecache^request()
 
 	quit 1

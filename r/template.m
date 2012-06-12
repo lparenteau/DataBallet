@@ -50,41 +50,10 @@ handle(docroot,urlroot)
 	set response("headers","Content-Type")="text/html"
 
 	; Get md5sum of the generated content.
-	new old,cmd,md5sum
-	set old=$io
-	set cmd="md5sum"
-	open cmd:(command="md5sum -")::"PIPE"
-	use cmd
-	write response("content")
-	write /eof
-	read md5sum#32
-	close cmd
-	use old
+	do md5sum^response()
 
-	; If the client's cached copy is no valid, answer a 200 OK (response("content") is already populated).
-	; Otherwise, kill the content so it is not sent.
-	if '$$cacheisvalid^request(response("lastmod"),md5sum) do set^response(200)  if 1
-	else  kill response("content")
-
-	; Send Expires header to be 1 day later than current response's date.
-	new expdate
-	set expdate=$zpiece(response("date"),",",1)+1_","_$zpiece(response("date"),",",2)
-	set response("headers","Expires")=$zdate(expdate,"DAY, DD MON YEAR 24:60:SS ")_"GMT"
-
-	; Send Last-Modified header
-	set response("headers","Last-Modified")=$zdate(response("lastmod"),"DAY, DD MON YEAR 24:60:SS ")_"GMT"
-
-	; Send Accept-Range header
-	set response("headers","Accept-Ranges")="none"
-
-	; Send Cache-Control's max-age to be 1 day.
-	set response("headers","Cache-Control")="max-age = 86400"
-
-	; Send Content-MD5
-	set response("headers","Content-MD5")=md5sum
-
-	; Send an ETag
-	set response("headers","ETag")=md5sum
+	; Validate the cache
+	do validatecache^request()
 
 	quit
 
