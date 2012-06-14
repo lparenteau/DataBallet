@@ -48,6 +48,7 @@ serve()
 	set ae=$get(request("headers","ACCEPT-ENCODING"),0)
 	set te=$get(request("headers","TE"),0)
 	quit:'$data(^CACHE(host,uri,ae,te)) 0
+	quit:request("method")'="GET" 0
 
 	; Check if cached response is still valid, based on last modification of all files used to generate the original response.
 	new file,cmd,old,buf,lastmod,curlastmod
