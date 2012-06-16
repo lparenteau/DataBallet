@@ -45,6 +45,10 @@ parsehdrs(line)
 	set:(fieldname="HOST")!(fieldname="CONNECTION") value=$$FUNC^%UCASE(value)
 
 	if fieldname="CONNECTION" set connection(fieldname)=value
+	else  if fieldname="COOKIE" do  if 1
+	.	for  do  quit:value=""
+	.	.	set request("headers",fieldname,$ztranslate($zpiece(value,"=")," "))=$zpiece($zextract(value,$zfind(value,"="),$zlength(value)),";")
+	.	.	set value=$select($zfind(value,";"):$zextract(value,$zfind(value,";"),$zlength(value)),1:"")
 	else  set request("headers",fieldname)=value
 
 	quit
