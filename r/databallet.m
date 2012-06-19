@@ -44,7 +44,7 @@ conf()
 	set conf("status",400)="Bad Request"
 	; set conf("status",401)="Unauthorized"
 	; set conf("status",402)="Payment Required"
-	; set conf("status",403)="Forbidden"
+	set conf("status",403)="Forbidden"
 	set conf("status",404)="Not Found"
 	set conf("status",404,"data")="<html><head><title>404 : Page Not Found</title></head><body><h1>404 : Page Not Found</h1></body></html>"
 	set conf("status",404,"ct")="text/html"
