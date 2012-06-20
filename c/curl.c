@@ -21,31 +21,59 @@
 #include <curl/curl.h>
 #include <gtmxc_types.h>
 
-void unescape(int count, gtm_string_t *val, gtm_string_t *unescaped)
+#define MAX_LENGTH 256
+
+void unescape(int count, gtm_pointertofunc_t gtm_malloc, gtm_pointertofunc_t gtm_free, gtm_string_t *val, gtm_string_t *unescaped)
 {
 	CURL *curl;
 	char *ret;
 	int length;
 
-	if (2 == count) {
-		curl = curl_easy_init();
-		ret = curl_easy_unescape(curl, val->address, val->length, &length);
-		unescaped->length = length;
-		memcpy(unescaped->address, ret, unescaped->length);
-		curl_free(ret);
-		curl_easy_cleanup(curl);
+	if (4 == count) {
+		if ((curl = curl_easy_init())) {
+			ret = curl_easy_unescape(curl, val->address, val->length, &length);
+			if (ret) {
+				if (length > MAX_LENGTH) {
+					((void (*)(void *))gtm_free)(unescaped->address);
+					unescaped->address = ((void *(*)(int))gtm_malloc)(length);
+				}
+				unescaped->length = length;
+				memcpy(unescaped->address, ret, unescaped->length);
+			} else {
+				unescaped->length = 0;
+			}
+			curl_free(ret);
+			curl_easy_cleanup(curl);
+		} else {
+			unescaped->length = 0;
+		}
 	}
 }
 
-void escape(int count, gtm_string_t *val, gtm_string_t *escaped)
+void escape(int count, gtm_pointertofunc_t gtm_malloc, gtm_pointertofunc_t gtm_free, gtm_string_t *val, gtm_string_t *escaped)
 {
 	CURL *curl;
 	char *ret;
-	if (2 == count) {
-		curl = curl_easy_init();
-		ret = curl_easy_escape(curl, val->address, val->length);
-		escaped->length = strlen(ret);
-		memcpy(escaped->address, ret, escaped->length);
-		curl_easy_cleanup(curl);
+	int length;
+
+	if (4 == count) {
+		if ((curl = curl_easy_init())) {
+			ret = curl_easy_escape(curl, val->address, val->length);
+			if (ret) {
+				length = strlen(ret);
+				if (length > MAX_LENGTH) {
+					((void (*)(void *))gtm_free)(escaped->address);
+					escaped->address = ((void *(*)(int))gtm_malloc)(length);
+				}
+				escaped->length = length;
+				memcpy(escaped->address, ret, escaped->length);
+			} else {
+				escaped->length = 0;
+			}
+			curl_free(ret);
+			curl_easy_cleanup(curl);
+		} else {
+			escaped->length = 0;
+		}
 	}
 }

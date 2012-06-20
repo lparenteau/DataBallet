@@ -158,3 +158,15 @@ salt(count)
 	for i=1:1:count set salt=salt_$random(10)
 
 	quit salt
+
+username()
+	;
+	; Return the username for the session of the current request.  Empty string if not found or invalid.
+	;
+	quit $get(^SESSION($get(request("headers","COOKIE","session")," ")))
+
+isauthenticated()
+	;
+	; Return 1 if the request is from an authenticated user, 0 otherwise.
+	;
+	quit $data(^SESSION($get(request("headers","COOKIE","session")," ")))

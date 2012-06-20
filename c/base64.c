@@ -23,24 +23,36 @@
 #include <openssl/evp.h>
 #include <gtmxc_types.h>
 
-void encode(int count, gtm_string_t *message, gtm_string_t *base64)
+#define MAX_LENGTH 256
+
+void encode(int count, gtm_pointertofunc_t gtm_malloc, gtm_pointertofunc_t gtm_free, gtm_string_t *message, gtm_string_t *base64)
 {
 	BIO *bio, *b64;
 	BUF_MEM *data;
 
-	if (2 == count) {
-		b64 = BIO_new(BIO_f_base64());
-		BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-		bio = BIO_new(BIO_s_mem());
-		bio = BIO_push(b64, bio);
-		BIO_write(bio, message->address, message->length);
-		if (BIO_flush(bio)) {
-			BIO_get_mem_ptr(bio, &data);
-			memcpy(base64->address, data->data, data->length);
-			base64->length = data->length;
+	if (4 == count) {
+		if ((b64 = BIO_new(BIO_f_base64()))) {
+			BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
+			if ((bio = BIO_new(BIO_s_mem()))) {
+				b64 = BIO_push(b64, bio);
+				BIO_write(b64, message->address, message->length);
+				if (BIO_flush(b64)) {
+					BIO_get_mem_ptr(b64, &data);
+					if (data->length > MAX_LENGTH) {
+						((void (*)(void *))gtm_free)(base64->address);
+						base64->address = ((void *(*)(int))gtm_malloc)(data->length);
+					}
+					memcpy(base64->address, data->data, data->length);
+					base64->length = data->length;
+				} else {
+					base64->length = 0;
+				}
+			} else {
+				base64->length = 0;
+			}
+			BIO_free_all(b64);
 		} else {
 			base64->length = 0;
 		}
-		BIO_free_all(bio);
 	}
 }

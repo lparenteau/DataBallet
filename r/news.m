@@ -31,9 +31,8 @@ handle(docroot,urlroot)
 	if '$data(urlroot) new urlroot set urlroot="/"
 
 	; Logout + Admin links if user is logged in, Login otherwise
-	new username,localvar
-	set username=$get(^SESSION($get(request("headers","COOKIE","session")," ")))
-	if username'="" set localvar("auth")="<li><a href=""/auth/logout/"">Logout</a></li><li><a href="""_urlroot_"admin/"">Admin</a></li>"
+	new localvar
+	if $$isauthenticated^auth() set localvar("auth")="<li><a href=""/auth/logout/"">Logout</a></li><li><a href="""_urlroot_"admin/"">Admin</a></li>"
 	else  set localvar("auth")="<li><a href=""/auth/login/"">Login</a></li>"
 
 	; Return an atom feed for a "/<urlroot>/atom.xml" request,
@@ -124,7 +123,7 @@ main(docroot,urlroot)
 	set cnt=0
 	set response("content")=response("content")_"<h2>"_$get(^NEWS("title"))_"</h2>"
 	for  quit:postid=""  quit:cnt=5  do
-	.	set response("content")=response("content")_"<h3>"_^NEWS("post",postid,"title")_"</h3>"
+	.	set response("content")=response("content")_"<h3>"_^NEWS("post",postid,"title")_"</h3><h4>"_$zdate(^NEWS("post",postid,"published"),"DAY, DD MON YEAR")_"</h4>"
 	.	set response("content")=response("content")_"<p>"_^NEWS("post",postid,"content")_"</p>"
 	.	; Update last modified date if needed.
 	.	set:$$isnewer^date(^NEWS("post",postid,"updated"),response("lastmod")) response("lastmod")=^NEWS("post",postid,"updated")
@@ -197,7 +196,7 @@ post(docroot)
 
 	; A post from database
 	set response("content")=response("content")_"<h2>"_$get(^NEWS("title"))_"</h2>"
-	set response("content")=response("content")_"<h3>"_^NEWS("post",postid,"title")_"</h3>"
+	set response("content")=response("content")_"<h3>"_^NEWS("post",postid,"title")_"</h3><h4>"_$zdate(^NEWS("post",postid,"published"),"DAY, DD MON YEAR")_"</h4>"
 	set response("content")=response("content")_"<p>"_^NEWS("post",postid,"content")_"</p>"
 	; Update last modified date if needed.
 	set:$$isnewer^date(^NEWS("post",postid,"updated"),response("lastmod")) response("lastmod")=^NEWS("post",postid,"updated")
@@ -220,7 +219,7 @@ admin(docroot,urlroot)
 	new lastmod
 
 	; This page is only accessible to logged in user
-	if username="" do set^response(403) quit
+	if '$$isauthenticated^auth() do set^response(403) quit
 
 	set response("content")=""
 	; Use template engine to load the header of the page.  Convention is to use '<docroot>/start.html', which can include a <title>{%}title{%}</title> line in there
@@ -262,7 +261,7 @@ adminaction(docroot,urlroot)
 	new lastmod,action,postid,content,value
 
 	; This page is only accessible to logged in user
-	if username="" do set^response(404) quit
+	if '$$isauthenticated^auth() do set^response(404) quit
 
 	set action=$zpiece(request("uri"),"/",4,4)
 	set postid=$zpiece(request("uri"),"/",5,5)

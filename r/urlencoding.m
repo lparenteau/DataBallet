@@ -22,7 +22,7 @@ decode(val)
 	;
 	new decoded
 	set val=$ztranslate(val,"+"," ")
-	do &curl.unescape(.val,.decoded)
+	do &curl.unescape(4,5,.val,.decoded)
 	quit decoded
 
 encode(val)
@@ -30,5 +30,5 @@ encode(val)
 	; Encoded a string for URL usage
 	;
 	new encoded
-	do &curl.escape(.val,.encoded)
+	do &curl.escape(4,5,.val,.encoded)
 	quit encoded

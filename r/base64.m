@@ -25,5 +25,5 @@ encode(message)
 	;
 	; Return base64 encoded message.
 	new base64
-	do &base64.encode(.message,.base64)
+	do &base64.encode(4,5,.message,.base64)
 	quit base64
