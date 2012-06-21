@@ -278,7 +278,7 @@ adminaction(docroot,urlroot)
 	.	.	set response("content")=response("content")_"<h2>Post published!</h2>"
 	.	.	for i=1:1:3 do
 	.	.	.	set value=$zpiece(request("content"),"&",i)
-	.	.	.	set content($zpiece(value,"=",1))=$$paragraph($$decode^urlencoding($zpiece(value,"=",2,$zlength(line))))
+	.	.	.	set content($zpiece(value,"=",1))=$$paragraph($$decode^url($zpiece(value,"=",2,$zlength(line))))
 	.	.	tstart ():serial
 	.	.	set:postid="" (postid,^NEWS("count"))=$get(^NEWS("count"))+1
 	.	.	set ^NEWS("post",postid,"title")=$get(content("title"))

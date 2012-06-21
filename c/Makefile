@@ -18,5 +18,3 @@
 
 all:
 	gcc -Wall -Werror -pedantic -fPIC -shared -o $(gtmdir)/libdigest.so digest.c -I$(gtm_dist) -lcrypto
-	gcc -Wall -Werror -pedantic -fPIC -shared -o $(gtmdir)/libbase64.so base64.c -I$(gtm_dist) -lcrypto
-	gcc -Wall -Werror -pedantic -fPIC -shared -o $(gtmdir)/libcurl.so curl.c -I$(gtm_dist) -lcurl
