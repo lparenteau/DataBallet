@@ -93,7 +93,7 @@ conf()
 	set conf("compressible","application/javascript")=1
 
 	; DataBallet version : YYYYMMDD
-	set databalletver=20120607
+	set databalletver=20120628
 
 	quit
 
@@ -103,9 +103,9 @@ start()
 	;
 	set $ZTRAP="do errhandler^databallet"
 	; Cleanup scratch global
-	kill ^TMP("DataBallet")
 	new conf
 	do conf
+	kill @TMP@("DataBallet")
 	job start^log(conf("log")):(output="/dev/null":error="/dev/null")
 	new socket,key,handle,p,socketfd
 	set socket="databallet"
@@ -123,12 +123,12 @@ start()
 	close p
 	use socket
 	set socketfd=socketfd+1
-	for  quit:$data(^TMP("DataBallet","quit"))  do
+	for  quit:$data(@TMP@("DataBallet","quit"))  do
 	.	set key=""
-	.	for  do  quit:key'=""  quit:$data(^TMP("DataBallet","quit"))
+	.	for  do  quit:key'=""  quit:$data(@TMP@("DataBallet","quit"))
 	.	.	write /wait(1)
 	.	.	set key=$key
-	.	quit:$data(^TMP("DataBallet","quit"))
+	.	quit:$data(@TMP@("DataBallet","quit"))
 	.	set handle=$piece(key,"|",2)
 	.	; Spawn a new process to handle the connection then close the connected socket as we won't use it from here.
 	.	zsystem "$gtm_dist/mumps -run serve^databallet <&"_socketfd_" >&"_socketfd_" 2>>"_conf("errorlog")_" &"
@@ -233,7 +233,7 @@ keepalive(line)
 	; Handle keep-alive connections for HTTP/1.0 and HTTP/1.1.
 	;
 
-	for  do servesinglereq(line) quit:$data(^TMP("DataBallet","quit"))  quit:connection("CONNECTION")'="KEEP-ALIVE"  read line:timeout quit:'$test  quit:$zeof
+	for  do servesinglereq(line) quit:$data(@TMP@("DataBallet","quit"))  quit:connection("CONNECTION")'="KEEP-ALIVE"  read line:timeout quit:'$test  quit:$zeof
 	quit
 
 errhandler()

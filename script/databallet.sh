@@ -59,7 +59,7 @@ function stop() {
 	checkpid
 	if [ "0" = "$status" ] ; then
 		# First, try a gentle stop
-		$gtm_dist/mumps -run %XCMD 'set ^TMP("DataBallet","quit")=1'
+		$gtm_dist/mumps -run %XCMD 'do userconf^userconf set @TMP@("DataBallet","quit")=1'
 		count=0
 		checkpid
 		while [ "0" = "$status" -a $count -lt 10 ]

@@ -21,15 +21,16 @@ start(commonfile)
 	; Start the log manager
 	;
 	new count
+	do userconf^userconf
 	open commonfile:(append:nofixed:wrap:noreadonly:chset="M")
 	use commonfile
-	set ^TMP("DataBallet","commonlog","count")=0
-	for  do  quit:$data(^TMP("DataBallet","quit"))
-	.	if '$data(^TMP("DataBallet","commonlog","msg")) hang 1
+	set @TMP@("DataBallet","commonlog","count")=0
+	for  do  quit:$data(@TMP@("DataBallet","quit"))
+	.	if '$data(@TMP@("DataBallet","commonlog","msg")) hang 1
 	.	else  do
-	.	.	set count=$order(^TMP("DataBallet","commonlog","msg",""))
-	.	.	write ^TMP("DataBallet","commonlog","msg",count),!
-	.	.	kill ^TMP("DataBallet","commonlog","msg",count)
+	.	.	set count=$order(@TMP@("DataBallet","commonlog","msg",""))
+	.	.	write @TMP@("DataBallet","commonlog","msg",count),!
+	.	.	kill @TMP@("DataBallet","commonlog","msg",count)
 	close commonfile
 	quit
 
@@ -41,7 +42,7 @@ common()
 	zshow "D":devices
 	set msg=$zpiece($zpiece(devices("D",2),"=",4),"@",1)_" - - ["_$zdate(response("date"),"DD/MON/YEAR:24:60:SS ")_"+0000] """_request("method")_" "_request("uri")_" "_connection("HTTPVER")_""" "_response("status")_" "_$get(response("headers","Content-Length"),"0")
 	tstart ():serial
-	set (cnt,^TMP("DataBallet","commonlog","count"))=^TMP("DataBallet","commonlog","count")+1
+	set (cnt,@TMP@("DataBallet","commonlog","count"))=@TMP@("DataBallet","commonlog","count")+1
 	tcommit
-	set ^TMP("DataBallet","commonlog","msg",cnt)=msg
+	set @TMP@("DataBallet","commonlog","msg",cnt)=msg
 	quit

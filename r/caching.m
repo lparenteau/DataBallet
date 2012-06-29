@@ -21,18 +21,25 @@ update()
 	; Cache the current request's response
 	;
 
+	; Check cache only if it is enabled
+	quit:'$data(CACHE)
 	; Cache only 200 OK
 	quit:response("status")'=200
 	; Do not cache if the response handler do not want us to
 	quit:$get(response("headers","Cache-Control"))="no-cache"
 
-	new host,uri,ae,te
+	new host,uri,ae,te,cookie,cookies
 	set host=$get(request("headers","HOST"),0)
 	set uri=request("uri")
 	set ae=$get(request("headers","ACCEPT-ENCODING"),0)
 	set te=$get(request("headers","TE"),0)
-	kill ^CACHE(host,uri,ae,te)
-	merge ^CACHE(host,uri,ae,te)=response
+	set cookies=" "
+	set cookie=$order(request("headers","COOKIE",""))
+	for  quit:cookie=""  do
+	.	set cookies=cookies_cookie_request("headers","COOKIE",cookie)
+	.	set cookie=$order(request("headers","COOKIE",cookie))
+	kill @CACHE@(host,uri,ae,te,cookies)
+	merge @CACHE@(host,uri,ae,te,cookies)=response
 	quit 
 
 serve()
@@ -42,17 +49,28 @@ serve()
 	; Return 1 and populate response if cache is OK.
 	; Return 0 otherwise.
 	;
-	new host,uri,ae,te
+
+	; Check cache only if it is enabled
+	quit:'$data(CACHE) 0
+
+	; Check cache only for GET request
+	quit:request("method")'="GET" 0
+
+	new host,uri,ae,te,cookie,cookies
 	set host=$get(request("headers","HOST"),0)
 	set uri=request("uri")
 	set ae=$get(request("headers","ACCEPT-ENCODING"),0)
 	set te=$get(request("headers","TE"),0)
-	quit:'$data(^CACHE(host,uri,ae,te)) 0
-	quit:request("method")'="GET" 0
+	set cookies=" "
+	set cookie=$order(request("headers","COOKIE",""))
+	for  quit:cookie=""  do
+	.	set cookies=cookies_cookie_request("headers","COOKIE",cookie)
+	.	set cookie=$order(request("headers","COOKIE",cookie))
+	quit:'$data(@CACHE@(host,uri,ae,te,cookies)) 0
 
 	; Check if cached response is still valid, based on last modification of all files used to generate the original response.
 	new file,cmd,old,buf,lastmod,curlastmod
-	set file=$order(^CACHE(host,uri,ae,te,"filelist",""))
+	set file=$order(@CACHE@(host,uri,ae,te,cookies,"filelist",""))
 	set cmd="stat"
 	set old=$io
 	set lastmod="0"
@@ -63,21 +81,21 @@ serve()
 	.	close cmd
 	.	set curlastmod=$$CDN^%H($zextract(buf,6,7)_"/"_$zextract(buf,9,10)_"/"_$zextract(buf,1,4))_","_$$CTN^%H($zextract(buf,12,19))
 	.	set:$$isnewer^date(curlastmod,lastmod) lastmod=curlastmod
-	.	set file=$order(^CACHE(host,uri,ae,te,"filelist",file))
+	.	set file=$order(@CACHE@(host,uri,ae,te,cookies,"filelist",file))
 	use old
 	; Also, check for content based on globals.  Every global listed should contain a $H value, representing the last-modified date of
 	; some global variable that was used to construct the response.
 	new glo
-	set glo=$order(^CACHE(host,uri,ae,te,"glolist",""))
+	set glo=$order(@CACHE@(host,uri,ae,te,cookies,"glolist",""))
 	for  quit:glo=""  do
 	.	set curlastmod=@glo
 	.	set:$$isnewer^date(curlastmod,lastmod) lastmod=curlastmod
-	.	set glo=$order(^CACHE(host,uri,ae,te,"glolist",glo))
-	quit:$$isnewer^date(lastmod,^CACHE(host,uri,ae,te,"lastmod")) 0
+	.	set glo=$order(@CACHE@(host,uri,ae,te,cookies,"glolist",glo))
+	quit:$$isnewer^date(lastmod,@CACHE@(host,uri,ae,te,cookies,"lastmod")) 0
 
 	; Load the response from cache.
 	kill response
-	merge response=^CACHE(host,uri,ae,te)
+	merge response=@CACHE@(host,uri,ae,te,cookies)
 	do init^response()
 
 	; Validate the client's cache.

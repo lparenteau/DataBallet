@@ -68,6 +68,16 @@ loadcontent(docroot,file)
 	;     Example: <%set%title=My Example Web Site%/>
 	;  {%}var{%} : Replace the {%}...{%} string with the value of the local variable, if it exist.  In all case, the {%}...{%} string is dropped from output.
 	;     Example: Welcome to {%}title{%}.
+	;  <%if%var=integer%/> : The whole line is dropped from the output.  If 'var' is different from 'integer', all lines until <%endif%/> are dropped.
+	;  <%endif%/> : The whole line is dropped.
+	;     Example:
+	;	<%if%auth=1%/>
+	;		Welcome {%}username{%}
+	;		<%if%isadmin=1%/>
+	;			You have access to the special <a href="/admin/">Admin</a> section!
+	;		<%endif%/>
+	;	<%endif%/>
+	;     Note: If 'var' is undefined it defaults to 0.
 	;
 	; Return the last modified date, which will be the latest one from all the
 	; files accessed.
@@ -85,7 +95,8 @@ loadcontent(docroot,file)
 
 	set response("filelist",file)=""
 	; Read the file and fill response("content")
-	new line,token,value,start,end
+	new line,token,value,start,end,skip
+	set skip=0
 	open file:(readonly:chset="M")
 	use file:width=1048576
 	for  read line quit:$zeof  do
@@ -93,7 +104,7 @@ loadcontent(docroot,file)
 	.	if start=0 do
 	.	.	for  quit:$zfind(line,"{%}")=0  do
 	.	.	.	set line=$zpiece(line,"{%}",1)_$get(localvar($zpiece(line,"{%}",2)),"")_$zpiece(line,"{%}",3,$zlength(line))
-	.	.	set response("content")=response("content")_line_delim
+	.	.	set:skip=0 response("content")=response("content")_line_delim
 	.	else  do
 	.	.	set end=$zfind(line,"%/>")
 	.	.	if (end'=0)&(end>start) do
@@ -101,6 +112,9 @@ loadcontent(docroot,file)
 	.	.	.	set value=$zpiece(line,"%",3)
 	.	.	.	if token="set" do
 	.	.	.	.	set localvar($zpiece(value,"=",1))=$zpiece(value,"=",2,$zlength(line))
+	.	.	.	else  if token="if" do
+	.	.	.	.	set:$get(localvar($zpiece(value,"=",1)),0)'=$zpiece(value,"=",2,$zlength(line)) skip=skip+1
+	.	.	.	else  if token="endif" set:skip>0 skip=skip-1
 	.	.	.	else  if token="include" do
 	.	.	.	.	new innerlastmod
 	.	.	.	.	set innerlastmod=$$loadcontent(docroot,docroot_value)
