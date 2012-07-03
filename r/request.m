@@ -49,7 +49,7 @@ parsehdrs(line)
 	.	for  do  quit:value=""
 	.	.	set request("headers",fieldname,$ztranslate($zpiece(value,"=")," "))=$zpiece($zextract(value,$zfind(value,"="),$zlength(value)),";")
 	.	.	set value=$select($zfind(value,";"):$zextract(value,$zfind(value,";"),$zlength(value)),1:"")
-	else  set request("headers",fieldname)=value
+	else  set request("headers",fieldname)=$select(value'="":value,1:0)
 
 	quit
 
