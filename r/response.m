@@ -25,7 +25,7 @@ set(status)
 	if $data(conf("status",status,"data")) do
 	.	set response("headers","Content-Type")=conf("status",status,"ct")
 	.	set response("headers","Content-Length")=conf("status",status,"cl")
-	.	set response("content")=conf("status",status,"data")
+	.	do addcontent(conf("status",status,"data"))
 
 	quit
 
@@ -35,7 +35,7 @@ senderr(status)
 	;
 
 	; Populate the response
-	new response
+	new response,i
 
 	do set^response(status)
 
@@ -46,7 +46,10 @@ senderr(status)
 	write eol
 
 	; Send error data, if any
-	write:$data(response("content")) response("content")
+	set i=$order(response("content",""))
+	for  quit:i=""  do
+	.	write response("content",i)
+	.	set i=$order(response("content",i))
 
 	; Log request/response
 	set:'$data(response("date")) response("date")=$horolog
@@ -110,7 +113,7 @@ sendresphdr()
 	.	.	.	close cmd
 	.	.	.	set length=$zpiece(length,$char(9),1)
 	.	.	.	if 1
-	.	.	else  set:$data(response("content")) length=$zlength(response("content"))
+	.	.	else  set:$data(response("content")) length=response("content-length")
 	.	.	set:$data(length) response("headers","Content-Length")=length
 	set:$data(response("lastmod")) response("headers","Last-Modified")=$zdate(response("lastmod"),"DAY, DD MON YEAR 24:60:SS ")_"GMT"
 
@@ -137,7 +140,7 @@ send()
 	; If a file has been specified, send it.
 	if request("method")'="HEAD" do
 	.	if $data(response("file")) do sendfile(response("file")) if 1
-	.	else  do:$data(response("content")) sendcontent(response("content"))
+	.	else  do:$data(response("content")) sendcontent()
 
 	; Log request/response
 	do common^log()
@@ -170,10 +173,17 @@ sendfile(filename)
 	set:'$data(response("headers","Content-Length")) response("headers","Content-Length")=length
 	quit
 
-sendcontent(data)
+sendcontent()
 	;
-	; Send supplied data as content
+	; Send response("content",...) as content
 	;
+	new data,i
+
+	set i=$order(response("content",""))
+	set data=""
+	for  quit:i=""  do
+	.	set data=data_response("content",i)
+	.	set i=$order(response("content",i))
 
 	if $data(response("encoding")) do
 	.	new cmd,old,arg
@@ -216,14 +226,17 @@ md5sum()
 	;
 	; Calculate the MD5SUM of the response's content (or file)
 	;
-	new old,cmd,file
+	new old,cmd,file,i
 	set old=$io
 	set cmd="md5sum"
 	set file=$get(response("file"),"-")
 	open cmd:(command="md5sum "_file)::"PIPE"
 	use cmd
 	if '$data(response("file")) do
-	.	write response("content")
+	.	set i=$order(response("content",""))
+	.	for  quit:i=""  do
+	.	.	write response("content",i)
+	.	.	set i=$order(response("content",i))
 	.	write /eof
 	read response("headers","Content-MD5")#32
 	close cmd
@@ -231,5 +244,22 @@ md5sum()
 
 	; Set ETag
 	set response("headers","ETag")=response("headers","Content-MD5")
+
+	quit
+
+addcontent(data)
+	;
+	; Add supplied data to the response's content
+	;
+	new last,max,i,length
+
+	; Default to 4080 bytes, since the default record size is 4096.
+	set max=$get(conf("cacherecsize"),4080)
+	set length=$zlength(data)
+
+	if $data(response("content"))=0 set last=0,response("content-length")=0
+	else  set last=$order(response("content",""),-1)+1
+
+	for i=1:max:length set response("content",last)=$zextract(data,i,i+max-1),response("content-length")=response("content-length")+$zlength(response("content",last)),last=last+1
 
 	quit

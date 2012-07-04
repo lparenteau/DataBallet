@@ -102,7 +102,7 @@ atomfeed(urlroot)
 	; Footer
 	set footer="</feed>"
 
-	set response("content")=header_author_posts_footer
+	do addcontent^response(header_author_posts_footer)
 
 	set response("headers","Content-Type")="application/atom+xml"
 
@@ -114,7 +114,6 @@ main(docroot,urlroot)
 	;
 	new lastmod
 
-	set response("content")=""
 	; Use template engine to load the header of the page.  Convention is to use '<docroot>/start.html', which can include a <title>{%}title{%}</title> line in there
 	; to make use of @NEWS@("title"), and {%}auth{%} to insert login/logout/admin links
 	set localvar("title")=$get(@NEWS@("title"))
@@ -124,10 +123,9 @@ main(docroot,urlroot)
 	new postid,cnt
 	set postid=$order(@NEWS@("post",""),-1)
 	set cnt=0
-	set response("content")=response("content")_"<h2>"_$get(@NEWS@("title"))_"</h2>"
+	do addcontent^response("<h2>"_$get(@NEWS@("title"))_"</h2>")
 	for  quit:postid=""  quit:cnt=5  do
-	.	set response("content")=response("content")_"<h3>"_@NEWS@("post",postid,"title")_"</h3><h4>"_$zdate(@NEWS@("post",postid,"published"),"DAY, DD MON YEAR")_"</h4>"
-	.	set response("content")=response("content")_"<p>"_@NEWS@("post",postid,"content")_"</p>"
+	.	do addcontent^response("<h3>"_@NEWS@("post",postid,"title")_"</h3><h4>"_$zdate(@NEWS@("post",postid,"published"),"DAY, DD MON YEAR")_"</h4><p>"_@NEWS@("post",postid,"content")_"</p>")
 	.	; Update last modified date if needed.
 	.	set:$$isnewer^date(@NEWS@("post",postid,"updated"),response("lastmod")) response("lastmod")=@NEWS@("post",postid,"updated")
 	.	set response("glolist","@NEWS@(""post"","_postid_",""updated"")")=""
@@ -136,7 +134,7 @@ main(docroot,urlroot)
 	.	set cnt=cnt+1
 
 	; Add link to archives (all posts)
-	set response("content")=response("content")_"<p>Browse <a href="""_urlroot_"archive/"">older posts</a>.</p>"
+	do addcontent^response("<p>Browse <a href="""_urlroot_"archive/"">older posts</a>.</p>")
 
 	; Use template engine to load the footer of the page.  Convention is to use '<docroot>/end.html'.
 	set lastmod=$$loadcontent^template(docroot,docroot_"/end.html")
@@ -154,7 +152,6 @@ archive(docroot,urlroot)
 	;
 	new lastmod
 
-	set response("content")=""
 	; Use template engine to load the header of the page.  Convention is to use '<docroot>/start.html', which can include a <title>{%}title{%}</title> line in there
 	; to make use of @NEWS@("title")
 	set localvar("title")=$get(@NEWS@("title"))_" | Archive"
@@ -164,9 +161,9 @@ archive(docroot,urlroot)
 	new postid,cnt
 	set postid=$order(@NEWS@("post",""),-1)
 	set cnt=0
-	set response("content")=response("content")_"<h2>"_$get(@NEWS@("title"))_"</h2><h3>Archive</h3>"
+	do addcontent^response("<h2>"_$get(@NEWS@("title"))_"</h2><h3>Archive</h3>")
 	for  quit:postid=""  do
-	.	set response("content")=response("content")_"<a href="""_urlroot_"posts/"_postid_""">"_@NEWS@("post",postid,"title")_"</a><br>"
+	.	do addcontent^response("<a href="""_urlroot_"posts/"_postid_""">"_@NEWS@("post",postid,"title")_"</a><br>")
 	.	; Update last modified date if needed.
 	.	set:$$isnewer^date(@NEWS@("post",postid,"updated"),response("lastmod")) response("lastmod")=@NEWS@("post",postid,"updated")
 	.	set response("glolist","@NEWS@(""post"","_postid_",""updated"")")=""
@@ -191,16 +188,13 @@ post(docroot)
 
 	set postid=$zpiece(request("uri"),"/",4,4)
 	if '$data(@NEWS@("post",postid)) do set^response(405) quit
-	set response("content")=""
 	; Use template engine to load the header of the page.  Convention is to use '<docroot>/start.html', which can include a <title>{%}title{%}</title> line in there
 	; to make use of @NEWS@("title")
 	set localvar("title")=$get(@NEWS@("title"))_" | "_@NEWS@("post",postid,"title")
 	set response("lastmod")=$$loadcontent^template(docroot,docroot_"/start.html")
 
 	; A post from database
-	set response("content")=response("content")_"<h2>"_$get(@NEWS@("title"))_"</h2>"
-	set response("content")=response("content")_"<h3>"_@NEWS@("post",postid,"title")_"</h3><h4>"_$zdate(@NEWS@("post",postid,"published"),"DAY, DD MON YEAR")_"</h4>"
-	set response("content")=response("content")_"<p>"_@NEWS@("post",postid,"content")_"</p>"
+	do addcontent^response("<h2>"_$get(@NEWS@("title"))_"</h2><h3>"_@NEWS@("post",postid,"title")_"</h3><h4>"_$zdate(@NEWS@("post",postid,"published"),"DAY, DD MON YEAR")_"</h4><p>"_@NEWS@("post",postid,"content")_"</p>")
 	; Update last modified date if needed.
 	set:$$isnewer^date(@NEWS@("post",postid,"updated"),response("lastmod")) response("lastmod")=@NEWS@("post",postid,"updated")
 	set response("glolist","@NEWS@(""post"","_postid_",""updated"")")=""
@@ -224,7 +218,6 @@ admin(docroot,urlroot)
 	; This page is only accessible to logged in user
 	if '$$isauthenticated^auth() do set^response(403) quit
 
-	set response("content")=""
 	; Use template engine to load the header of the page.  Convention is to use '<docroot>/start.html', which can include a <title>{%}title{%}</title> line in there
 	; to make use of @NEWS@("title")
 	set localvar("title")=$get(@NEWS@("title"))_" | Admin"
@@ -234,13 +227,9 @@ admin(docroot,urlroot)
 	new postid,cnt
 	set postid=$order(@NEWS@("post",""),-1)
 	set cnt=0
-	set response("content")=response("content")_"<h2>"_$get(@NEWS@("title"))_"</h2>"
-	set response("content")=response("content")_"<p>Create a <a href="""_urlroot_"admin/add/"">New Post</a></p>"
-	set response("content")=response("content")_"<h3>All Posts</h3>"
+	do addcontent^response("<h2>"_$get(@NEWS@("title"))_"</h2><p>Create a <a href="""_urlroot_"admin/add/"">New Post</a></p><h3>All Posts</h3>")
 	for  quit:postid=""  do
-	.	set response("content")=response("content")_"<a href="""_urlroot_"posts/"_postid_""">"_@NEWS@("post",postid,"title")_"</a>"
-	.	set response("content")=response("content")_" <a href="""_urlroot_"admin/delete/"_postid_""">Delete</a>"
-	.	set response("content")=response("content")_" <a href="""_urlroot_"admin/edit/"_postid_""">Edit</a><br>"
+	.	do addcontent^response("<a href="""_urlroot_"posts/"_postid_""">"_@NEWS@("post",postid,"title")_"</a> <a href="""_urlroot_"admin/delete/"_postid_""">Delete</a> <a href="""_urlroot_"admin/edit/"_postid_""">Edit</a><br>")
 	.	; Update last modified date if needed.
 	.	set:$$isnewer^date(@NEWS@("post",postid,"updated"),response("lastmod")) response("lastmod")=@NEWS@("post",postid,"updated")
 	.	set response("glolist","@NEWS@(""post"","_postid_",""updated"")")=""
@@ -261,7 +250,7 @@ adminaction(docroot,urlroot)
 	;
 	; Handle various admin actions
 	;
-	new lastmod,action,postid,content,value
+	new lastmod,action,postid,content,value,i
 
 	; This page is only accessible to logged in user
 	if '$$isauthenticated^auth() do set^response(404) quit
@@ -269,7 +258,6 @@ adminaction(docroot,urlroot)
 	set action=$zpiece(request("uri"),"/",4,4)
 	set postid=$zpiece(request("uri"),"/",5,5)
 
-	set response("content")=""
 	; Use template engine to load the header of the page.  Convention is to use '<docroot>/start.html', which can include a <title>{%}title{%}</title> line in there
 	; to make use of @NEWS@("title")
 	set localvar("title")=$get(@NEWS@("title"))_" | Admin"
@@ -278,7 +266,7 @@ adminaction(docroot,urlroot)
 	;
 	if action="add" do
 	.	if $$methodis^request("PUT,POST") do  if 1
-	.	.	set response("content")=response("content")_"<h2>Post published!</h2>"
+	.	.	do addcontent^response("<h2>Post published!</h2>")
 	.	.	for i=1:1:3 do
 	.	.	.	set value=$zpiece(request("content"),"&",i)
 	.	.	.	set content($zpiece(value,"=",1))=$$paragraph($$decode^url($zpiece(value,"=",2,$zlength(line))))
@@ -291,20 +279,9 @@ adminaction(docroot,urlroot)
 	.	.	set:$get(@NEWS@("post",postid,"published"))="" @NEWS@("post",postid,"published")=@NEWS@("post",postid,"updated")
 	.	.	tcommit
 	.	else  do
-	.	.	set response("content")=response("content")_"<h2>New post</h2><form enctype=""application/x-www-form-urlencoded"" accept-charset=""UTF-8"" action="""_urlroot_"admin/add/"" method=""post"">"
-	.	.	set response("content")=response("content")_"<p><label for=""title"">Title: </label><input type=""text"" name=""title"" /></p>"
-	.	.	set response("content")=response("content")_"<p><label for=""summary"">Summary: </label><input type=""text"" name=""summary"" /></p>"
-	.	.	set response("content")=response("content")_"<p><label for=""content"">Content: </label><textarea wrap=""virtual"" name=""content"" ></textarea></p>"
-	.	.	set response("content")=response("content")_"<p><input type=""submit"" value=""Publish"" /></p>"
-	.	.	set response("content")=response("content")_"</form>"
-	else  if action="delete" kill @NEWS@("post",postid) set response("content")=response("content")_"<h2>Post deleted</h2>"
-	else  if action="edit" do 
-	.	set response("content")=response("content")_"<h2>New post</h2><form enctype=""application/x-www-form-urlencoded"" accept-charset=""UTF-8"" action="""_urlroot_"admin/add/"_postid_""" method=""post"">"
-	.	set response("content")=response("content")_"<p><label for=""title"">Title: </label><input type=""text"" name=""title"" value="""_@NEWS@("post",postid,"title")_"""/></p>"
-	.	set response("content")=response("content")_"<p><label for=""summary"">Summary: </label><input type=""text"" name=""summary"" value="""_@NEWS@("post",postid,"summary")_"""/></p>"
-	.	set response("content")=response("content")_"<p><label for=""content"">Content: </label><textarea wrap=""virtual"" name=""content"" >"_@NEWS@("post",postid,"content")_"</textarea></p>"
-	.	set response("content")=response("content")_"<p><input type=""submit"" value=""Publish"" /></p>"
-	.	set response("content")=response("content")_"</form>"
+	.	.	do addcontent^response("<h2>New post</h2><form enctype=""application/x-www-form-urlencoded"" accept-charset=""UTF-8"" action="""_urlroot_"admin/add/"" method=""post""><p><label for=""title"">Title: </label><input type=""text"" name=""title"" /></p><p><label for=""summary"">Summary: </label><input type=""text"" name=""summary"" /></p><p><label for=""content"">Content: </label><textarea wrap=""virtual"" name=""content"" ></textarea></p><p><input type=""submit"" value=""Publish"" /></p></form>") if 1
+	else  if action="delete" kill @NEWS@("post",postid) do addcontent^response("<h2>Post deleted</h2>") if 1
+	else  if action="edit" do addcontent^response("<h2>New post</h2><form enctype=""application/x-www-form-urlencoded"" accept-charset=""UTF-8"" action="""_urlroot_"admin/add/"_postid_""" method=""post""><p><label for=""title"">Title: </label><input type=""text"" name=""title"" value="""_@NEWS@("post",postid,"title")_"""/></p><p><label for=""summary"">Summary: </label><input type=""text"" name=""summary"" value="""_@NEWS@("post",postid,"summary")_"""/></p><p><label for=""content"">Content: </label><textarea wrap=""virtual"" name=""content"" >"_@NEWS@("post",postid,"content")_"</textarea></p><p><input type=""submit"" value=""Publish"" /></p></form>") if 1
 	else  kill response("content"),response("lastmod") do set^response(404) quit
 
 	; Use template engine to load the footer of the page.  Convention is to use '<docroot>/end.html'.

@@ -20,7 +20,7 @@ decode(val)
 	;
 	; Decoded a URL Encoded string
 	;
-	new decoded,c
+	new decoded,c,i
 
 	set decoded=""
 	for i=1:1:$zlength(val) do
@@ -38,9 +38,7 @@ encode(val)
 	set encoded=""
 
 	; Populate safe char only the first time
-	if '$data(safechar) do
-	.	new i
-	.	for i=45,46,95,126,48:1:57,65:1:90,97:1:122 set safechar($zchar(i))=""
+	if '$data(safechar) for i=45,46,95,126,48:1:57,65:1:90,97:1:122 set safechar($zchar(i))=""
 
 	for i=1:1:$zlength(val) do
 	.	set c=$zextract(val,i,i)

@@ -57,7 +57,7 @@ methodis(methods)
 	;
 	; Compare current request's method with the comma seperated list of methods.
 	;
-	new p
+	new p,i
 	for i=1:1 set p=$zpiece(methods,",",i,i) quit:(p="")!(p=request("method"))
 	; Method is in the supplied list
 	quit:p'="" 1

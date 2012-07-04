@@ -24,7 +24,7 @@ route()	;
 	quit:$$serve^caching()
 
 	; Find the correct route and handle the request
-	new uri,host,handler,len
+	new uri,host,handler,len,i
 	set uri=request("uri")
 	set host=$get(request("headers","HOST"),"*")
 	set:'$data(conf("routing",host)) host="*"

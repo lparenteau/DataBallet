@@ -58,18 +58,13 @@ login(docroot,urlroot)
 	if $$methodis^request("PUT,POST") do postlogin(docroot,urlroot)  quit
 
 	new localvar,lastmod
-	set response("content")=""
 	; Use template engine to load the header of the page.  Convention is to use '<docroot>/start.html', which can include a <title>{%}title{%}</title> line in there
 	; to make use of @AUTH@("logintitle")
 	set localvar("title")=$get(@AUTH@("logintitle"))
 	set response("lastmod")=$$loadcontent^template(docroot,docroot_"/start.html")
 
 	; Set login form
-	set response("content")=response("content")_"<h2>Login</h2><form action="""_urlroot_"login/"" method=""post"">"
-	set response("content")=response("content")_"<p><label for=""username"">Username: </label><input type=""text"" name=""username"" /></p>"
-	set response("content")=response("content")_"<p><label for=""password"">Password: </label><input type=""password"" name=""password"" /></p>"
-	set response("content")=response("content")_"<p><input type=""submit"" value=""Login"" /></p>"
-	set response("content")=response("content")_"</form>"
+	do addcontent^response("<h2>Login</h2><form action="""_urlroot_"login/"" method=""post""><p><label for=""username"">Username: </label><input type=""text"" name=""username"" /></p><p><label for=""password"">Password: </label><input type=""password"" name=""password"" /></p><p><input type=""submit"" value=""Login"" /></p></form>")
 
 	; Use template engine to load the footer of the page.  Convention is to use '<docroot>/end.html'.
 	set lastmod=$$loadcontent^template(docroot,docroot_"/end.html")
@@ -85,27 +80,26 @@ postlogin(docroot,urlroot)
 	;
 	; Handle the login form data received
 	;
-	new content
+	new content,i
 
 	for i=1:1:2 do
 	.	set value=$zpiece(request("content"),"&",i)
 	.	set content($zpiece(value,"=",1))=$zpiece(value,"=",2,$zlength(line))
 
 	new localvar,lastmod,session
-	set response("content")=""
 	; Use template engine to load the header of the page.  Convention is to use '<docroot>/start.html', which can include a <title>{%}title{%}</title> line in there
 	; to make use of @AUTH@("logintitle")
 	set localvar("title")=$get(@AUTH@("logintitle"))
 	set response("lastmod")=$$loadcontent^template(docroot,docroot_"/start.html")
 
 	if $data(@AUTH@("accounts",content("username"))) do  if 1
-	.	if @AUTH@("accounts",content("username"),"password")=$$hash(content("password"),@AUTH@("accounts",content("username"),"salt")) do
+	.	if @AUTH@("accounts",content("username"),"password")=$$hash(content("password"),@AUTH@("accounts",content("username"),"salt")) do  if 1
 	.	.	set session=$$encode^base64($$salt(16))
-	.	.	set response("content")=response("content")_"Welcome back "_content("username")_"!"
+	.	.	do addcontent^response("Welcome back "_content("username")_"!")
 	.	.	set response("headers","Set-Cookie")="session="_session_"; Path=/; HttpOnly"
 	.	.	set @SESSION@(session)=content("username")
-	.	else  set response("content")=response("content")_"Wrong username or password..."
-	else  set response("content")=response("content")_"Wrong username or password..."
+	.	else  do addcontent^response("Wrong username or password...") if 1
+	else  do addcontent^response("Wrong username or password...") if 1
 
 	; Use template engine to load the footer of the page.  Convention is to use '<docroot>/end.html'.
 	set lastmod=$$loadcontent^template(docroot,docroot_"/end.html")
@@ -123,14 +117,12 @@ logout(docroot,urlroot)
 	;
 
 	new localvar,lastmod
-	set response("content")=""
 	; Use template engine to load the header of the page.  Convention is to use '<docroot>/start.html', which can include a <title>{%}title{%}</title> line in there
 	; to make use of @AUTH@("logintitle")
 	set localvar("title")=$get(@AUTH@("logintitle"))
 	set response("lastmod")=$$loadcontent^template(docroot,docroot_"/start.html")
 
-	; Set login form
-	set response("content")=response("content")_"<h2>Logged out!</h2>"
+	do addcontent^response("<h2>Logged out!</h2>")
 	set response("headers","Set-Cookie")="session=deleted; Path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
 	kill @SESSION@($get(request("headers","COOKIE","session")," "))
 
@@ -155,7 +147,7 @@ salt(count)
 	;
 	; Return a pseudo-random value consisting of count digits.
 	;
-	new salt
+	new salt,i
 	set salt=""
 
 	for i=1:1:count set salt=salt_$random(10)
@@ -173,3 +165,23 @@ isauthenticated()
 	; Return 1 if the request is from an authenticated user, 0 otherwise.
 	;
 	quit $data(@SESSION@($get(request("headers","COOKIE","session")," ")))
+
+adduser(username,password,AUTH)
+	;
+	; Add a new user
+	;
+	new salt,saltedpass
+
+	; Default AUTH
+	if '$data(AUTH) new AUTH set AUTH="^AUTH"
+
+	set salt=$$salt(64)
+	set saltedpass=$$hash(password,salt)
+
+	tstart ():serial
+	if '$data(@AUTH@("accounts",username)) do
+	.	set @AUTH@("accounts",username,"password")=saltedpass
+	.	set @AUTH@("accounts",username,"salt")=salt
+	tcommit
+
+	quit

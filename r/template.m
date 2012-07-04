@@ -42,7 +42,6 @@ handle(docroot,urlroot)
 	if $$FUNC^%UCASE($zparse(file,"TYPE"))'=".HTML" do handle^static(docroot,urlroot,file) quit
 
 	; Parse the file to fill reponse("content") and get the last modified date.
-	set response("content")=""
 	new localvar
 	set response("lastmod")=$$loadcontent(docroot,file)
 
@@ -104,7 +103,7 @@ loadcontent(docroot,file)
 	.	if start=0 do
 	.	.	for  quit:$zfind(line,"{%}")=0  do
 	.	.	.	set line=$zpiece(line,"{%}",1)_$get(localvar($zpiece(line,"{%}",2)),"")_$zpiece(line,"{%}",3,$zlength(line))
-	.	.	set:skip=0 response("content")=response("content")_line_delim
+	.	.	do:skip=0 addcontent^response(line_delim)
 	.	else  do
 	.	.	set end=$zfind(line,"%/>")
 	.	.	if (end'=0)&(end>start) do
