@@ -38,6 +38,7 @@ update()
 	for  quit:cookie=""  do
 	.	set cookies=cookies_cookie_request("headers","COOKIE",cookie)
 	.	set cookie=$order(request("headers","COOKIE",cookie))
+	set cookies=$$sha256^digest(cookies)
 	kill @CACHE@(host,uri,ae,te,cookies)
 	merge @CACHE@(host,uri,ae,te,cookies)=response
 	quit 
@@ -66,6 +67,7 @@ serve()
 	for  quit:cookie=""  do
 	.	set cookies=cookies_cookie_request("headers","COOKIE",cookie)
 	.	set cookie=$order(request("headers","COOKIE",cookie))
+	set cookies=$$sha256^digest(cookies)
 	quit:'$data(@CACHE@(host,uri,ae,te,cookies)) 0
 
 	; Check if cached response is still valid, based on last modification of all files used to generate the original response.
