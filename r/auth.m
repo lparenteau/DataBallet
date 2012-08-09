@@ -96,7 +96,7 @@ postlogin(docroot,urlroot)
 	.	if @AUTH@("accounts",content("username"),"password")=$$hash(content("password"),@AUTH@("accounts",content("username"),"salt")) do  if 1
 	.	.	set session=$$encode^base64($$salt(16))
 	.	.	do addcontent^response("Welcome back "_content("username")_"!")
-	.	.	set response("headers","Set-Cookie")="session="_session_"; Path=/; HttpOnly"
+	.	.	set response("headers","Set-Cookie")="session="_session_"; Path=/; HttpOnly; Secure"
 	.	.	set @SESSION@(session)=content("username")
 	.	else  do addcontent^response("Wrong username or password...") if 1
 	else  do addcontent^response("Wrong username or password...") if 1

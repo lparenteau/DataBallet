@@ -223,11 +223,17 @@ admin(docroot,urlroot)
 	set localvar("title")=$get(@NEWS@("title"))_" | Admin"
 	set response("lastmod")=$$loadcontent^template(docroot,docroot_"/start.html")
 
+	; Link to create a new post
+	do addcontent^response("<h2>"_$get(@NEWS@("title"))_"</h2><p>Create a <a href="""_urlroot_"admin/add/"">New Post</a></p>")
+
+	; Form to edit Title and Authors
+	do addcontent^response("<form enctype=""application/x-www-form-urlencoded"" accept-charset=""UTF-8"" action="""_urlroot_"admin/update/"" method=""post""><p><label for=""title"">Title: </label><input type=""text"" name=""title"" /></p><p><label for=""author"">Author: </label><input type=""text"" name=""author"" /></p><p><label for=""email"">Email: </label><input type=""text"" name=""email"" /></p><p><label for=""uri"">URI: </label><input type=""text"" name=""uri"" /></p><p><input type=""submit"" value=""Update"" /></p></form>")
+
 	; List all posts from database
 	new postid,cnt
 	set postid=$order(@NEWS@("post",""),-1)
 	set cnt=0
-	do addcontent^response("<h2>"_$get(@NEWS@("title"))_"</h2><p>Create a <a href="""_urlroot_"admin/add/"">New Post</a></p><h3>All Posts</h3>")
+	do addcontent^response("<h3>All Posts</h3>")
 	for  quit:postid=""  do
 	.	do addcontent^response("<a href="""_urlroot_"posts/"_postid_""">"_@NEWS@("post",postid,"title")_"</a> <a href="""_urlroot_"admin/delete/"_postid_""">Delete</a> <a href="""_urlroot_"admin/edit/"_postid_""">Edit</a><br>")
 	.	; Update last modified date if needed.
@@ -267,9 +273,7 @@ adminaction(docroot,urlroot)
 	if action="add" do
 	.	if $$methodis^request("PUT,POST") do  if 1
 	.	.	do addcontent^response("<h2>Post published!</h2>")
-	.	.	for i=1:1:3 do
-	.	.	.	set value=$zpiece(request("content"),"&",i)
-	.	.	.	set content($zpiece(value,"=",1))=$$paragraph($$decode^url($zpiece(value,"=",2,$zlength(line))))
+	.	.	for i=1:1:3 set value=$zpiece(request("content"),"&",i),content($zpiece(value,"=",1))=$$paragraph($$decode^url($zpiece(value,"=",2,$zlength(line))))
 	.	.	tstart ():serial
 	.	.	set:postid="" (postid,@NEWS@("count"))=$get(@NEWS@("count"))+1
 	.	.	set @NEWS@("post",postid,"title")=$get(content("title"))
@@ -279,9 +283,20 @@ adminaction(docroot,urlroot)
 	.	.	set:$get(@NEWS@("post",postid,"published"))="" @NEWS@("post",postid,"published")=@NEWS@("post",postid,"updated")
 	.	.	tcommit
 	.	else  do
-	.	.	do addcontent^response("<h2>New post</h2><form enctype=""application/x-www-form-urlencoded"" accept-charset=""UTF-8"" action="""_urlroot_"admin/add/"" method=""post""><p><label for=""title"">Title: </label><input type=""text"" name=""title"" /></p><p><label for=""summary"">Summary: </label><input type=""text"" name=""summary"" /></p><p><label for=""content"">Content: </label><textarea wrap=""virtual"" name=""content"" ></textarea></p><p><input type=""submit"" value=""Publish"" /></p></form>") if 1
+	.	.	do addcontent^response("<h2>New post</h2><form enctype=""application/x-www-form-urlencoded"" accept-charset=""UTF-8"" action="""_urlroot_"admin/add/"" method=""post""><p><label for=""title"">Title: </label><input type=""text"" name=""title"" /></p><p><label for=""summary"">Summary: </label><input type=""text"" name=""summary"" /></p><p><label for=""content"">Content: </label><textarea wrap=""virtual"" name=""content"" rows=""10"" cols=""35""></textarea></p><p><input type=""submit"" value=""Publish"" /></p></form>") if 1
 	else  if action="delete" kill @NEWS@("post",postid) do addcontent^response("<h2>Post deleted</h2>") if 1
-	else  if action="edit" do addcontent^response("<h2>New post</h2><form enctype=""application/x-www-form-urlencoded"" accept-charset=""UTF-8"" action="""_urlroot_"admin/add/"_postid_""" method=""post""><p><label for=""title"">Title: </label><input type=""text"" name=""title"" value="""_@NEWS@("post",postid,"title")_"""/></p><p><label for=""summary"">Summary: </label><input type=""text"" name=""summary"" value="""_@NEWS@("post",postid,"summary")_"""/></p><p><label for=""content"">Content: </label><textarea wrap=""virtual"" name=""content"" >"_@NEWS@("post",postid,"content")_"</textarea></p><p><input type=""submit"" value=""Publish"" /></p></form>") if 1
+	else  if action="edit" do addcontent^response("<h2>New post</h2><form enctype=""application/x-www-form-urlencoded"" accept-charset=""UTF-8"" action="""_urlroot_"admin/add/"_postid_""" method=""post""><p><label for=""title"">Title: </label><input type=""text"" name=""title"" value="""_@NEWS@("post",postid,"title")_"""/></p><p><label for=""summary"">Summary: </label><input type=""text"" name=""summary"" value="""_@NEWS@("post",postid,"summary")_"""/></p><p><label for=""content"">Content: </label><textarea wrap=""virtual"" name=""content"" rows=""10"" cols=""35"">"_@NEWS@("post",postid,"content")_"</textarea></p><p><input type=""submit"" value=""Publish"" /></p></form>") if 1
+	else  if action="update" do
+	.	if $$methodis^request("PUT,POST") do  if 1
+	.	.	do addcontent^response("<h2>Updated!</h2>")
+	.	.	for i=1:1:4 set value=$zpiece(request("content"),"&",i),content($zpiece(value,"=",1))=$$paragraph($$decode^url($zpiece(value,"=",2,$zlength(line))))
+	.	.	tstart ():serial
+	.	.	set @NEWS@("title")=$get(content("title"))
+	.	.	set @NEWS@("author","name")=$get(content("author"))
+	.	.	set @NEWS@("author","email")=$get(content("email"))
+	.	.	set @NEWS@("author","uri")=$get(content("uri"))
+	.	.	tcommit
+	.	else  kill response("content"),response("lastmod") do set^response(404) quit
 	else  kill response("content"),response("lastmod") do set^response(404) quit
 
 	; Use template engine to load the footer of the page.  Convention is to use '<docroot>/end.html'.

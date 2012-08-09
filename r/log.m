@@ -40,7 +40,7 @@ common()
 	;
 	new devices,msg,cnt
 	zshow "D":devices
-	set msg=$zpiece($zpiece(devices("D",2),"=",4),"@",1)_" - - ["_$zdate(response("date"),"DD/MON/YEAR:24:60:SS ")_"+0000] """_request("method")_" "_request("uri")_" "_connection("HTTPVER")_""" "_response("status")_" "_$get(response("headers","Content-Length"),"0")
+	set msg=$zextract($zpiece($zpiece(devices("D",2),"=",4),"@",1)_" - - ["_$zdate(response("date"),"DD/MON/YEAR:24:60:SS ")_"+0000] """_request("method")_" "_request("uri")_" "_connection("HTTPVER")_""" "_response("status")_" "_$get(response("headers","Content-Length"),"0"),1,450)
 	tstart ():serial
 	set (cnt,@TMP@("DataBallet","commonlog","count"))=@TMP@("DataBallet","commonlog","count")+1
 	tcommit

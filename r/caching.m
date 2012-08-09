@@ -90,7 +90,7 @@ serve()
 	new glo
 	set glo=$order(@CACHE@(host,uri,ae,te,cookies,"glolist",""))
 	for  quit:glo=""  do
-	.	set curlastmod=@glo
+	.	set curlastmod=$get(@glo,$HOROLOG)
 	.	set:$$isnewer^date(curlastmod,lastmod) lastmod=curlastmod
 	.	set glo=$order(@CACHE@(host,uri,ae,te,cookies,"glolist",glo))
 	quit:$$isnewer^date(lastmod,@CACHE@(host,uri,ae,te,cookies,"lastmod")) 0

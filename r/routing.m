@@ -19,6 +19,8 @@
 route()	;
 	; Route the current request and populate the response
 	;
+	; If no route can be found, a "403 Forbidden" error will be sent.
+	;
 
 	; First, check in the cache
 	quit:$$serve^caching()
@@ -40,7 +42,7 @@ route()	;
 	.	for i=$zlength(uri,"/"):-1:1 do  quit:$data(conf("routing",host,uri))
 	.	.	set uri=$zpiece(uri,"/",1,i)
 	.	.	set:uri="" uri="/"
-	.	set handler=conf("routing",host,uri)
+	.	set handler=$get(conf("routing",host,uri),"do senderr^response(""403"")")
 
 	xecute handler
 
