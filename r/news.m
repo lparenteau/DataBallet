@@ -93,7 +93,7 @@ atomfeed(urlroot)
 	.	set posts=posts_"<summary>"_$get(@NEWS@("post",postid,"summary"))_"</summary></entry>"
 	.	; Update last modified date if needed.
 	.	set:$$isnewer^date(@NEWS@("post",postid,"updated"),response("lastmod")) response("lastmod")=@NEWS@("post",postid,"updated")
-	.	set response("glolist","@NEWS@(""post"","_postid_",""updated"")")=""
+	.	set response("glolist",NEWS_"(""post"","_postid_",""updated"")")=""
 	.	; Get next post
 	.	set postid=$order(@NEWS@("post",postid))
 
@@ -128,7 +128,7 @@ main(docroot,urlroot)
 	.	do addcontent^response("<h3>"_@NEWS@("post",postid,"title")_"</h3><h4>"_$zdate(@NEWS@("post",postid,"published"),"DAY, DD MON YEAR")_"</h4><p>"_@NEWS@("post",postid,"content")_"</p>")
 	.	; Update last modified date if needed.
 	.	set:$$isnewer^date(@NEWS@("post",postid,"updated"),response("lastmod")) response("lastmod")=@NEWS@("post",postid,"updated")
-	.	set response("glolist","@NEWS@(""post"","_postid_",""updated"")")=""
+	.	set response("glolist",NEWS_"(""post"","_postid_",""updated"")")=""
 	.	; Get next post
 	.	set postid=$order(@NEWS@("post",postid),-1)
 	.	set cnt=cnt+1
@@ -166,7 +166,7 @@ archive(docroot,urlroot)
 	.	do addcontent^response("<a href="""_urlroot_"posts/"_postid_""">"_@NEWS@("post",postid,"title")_"</a><br>")
 	.	; Update last modified date if needed.
 	.	set:$$isnewer^date(@NEWS@("post",postid,"updated"),response("lastmod")) response("lastmod")=@NEWS@("post",postid,"updated")
-	.	set response("glolist","@NEWS@(""post"","_postid_",""updated"")")=""
+	.	set response("glolist",NEWS_"(""post"","_postid_",""updated"")")=""
 	.	; Get next post
 	.	set postid=$order(@NEWS@("post",postid),-1)
 
@@ -197,7 +197,7 @@ post(docroot)
 	do addcontent^response("<h2>"_$get(@NEWS@("title"))_"</h2><h3>"_@NEWS@("post",postid,"title")_"</h3><h4>"_$zdate(@NEWS@("post",postid,"published"),"DAY, DD MON YEAR")_"</h4><p>"_@NEWS@("post",postid,"content")_"</p>")
 	; Update last modified date if needed.
 	set:$$isnewer^date(@NEWS@("post",postid,"updated"),response("lastmod")) response("lastmod")=@NEWS@("post",postid,"updated")
-	set response("glolist","@NEWS@(""post"","_postid_",""updated"")")=""
+	set response("glolist",NEWS_"(""post"","_postid_",""updated"")")=""
 
 	; Use template engine to load the footer of the page.  Convention is to use '<docroot>/end.html'.
 	set lastmod=$$loadcontent^template(docroot,docroot_"/end.html")
@@ -238,7 +238,7 @@ admin(docroot,urlroot)
 	.	do addcontent^response("<a href="""_urlroot_"posts/"_postid_""">"_@NEWS@("post",postid,"title")_"</a> <a href="""_urlroot_"admin/delete/"_postid_""">Delete</a> <a href="""_urlroot_"admin/edit/"_postid_""">Edit</a><br>")
 	.	; Update last modified date if needed.
 	.	set:$$isnewer^date(@NEWS@("post",postid,"updated"),response("lastmod")) response("lastmod")=@NEWS@("post",postid,"updated")
-	.	set response("glolist","@NEWS@(""post"","_postid_",""updated"")")=""
+	.	set response("glolist",NEWS_"(""post"","_postid_",""updated"")")=""
 	.	; Get next post
 	.	set postid=$order(@NEWS@("post",postid),-1)
 

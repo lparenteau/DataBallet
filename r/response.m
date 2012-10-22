@@ -33,10 +33,10 @@ senderr(status)
 	;
 	; Send an HTTP error response
 	;
+	new i
+	if '$data(response) new response
 
 	; Populate the response
-	new response,i
-
 	do set^response(status)
 
 	; Send response headers

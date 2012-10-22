@@ -92,7 +92,7 @@ loadcontent(docroot,file)
 	close cmd
 	set lastmod=$$CDN^%H($zextract(buf,6,7)_"/"_$zextract(buf,9,10)_"/"_$zextract(buf,1,4))_","_$$CTN^%H($zextract(buf,12,19))
 
-	set response("filelist",file)=""
+	set response("filelist",$order(response("filelist",""),-1)+1)=file
 	; Read the file and fill response("content")
 	new line,token,value,start,end,skip
 	set skip=0

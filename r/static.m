@@ -35,7 +35,7 @@ handle(docroot,urlroot,file)
 	if '$data(urlroot) new urlroot set urlroot="/"
 	if '$data(file) new file set file=$$getfile(docroot,urlroot) quit:file=""
 
-	set response("filelist",file)=""
+	set response("filelist",$order(response("filelist",""),-1)+1)=file
 	set response("file")=file
 
 	; Get file last modified date & md5sum.
