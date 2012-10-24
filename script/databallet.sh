@@ -89,6 +89,18 @@ function status() {
 	fi
 }
 
+function update() {
+	echo "Installing lastest code for $progname."
+	tmpdir=`mktemp -d`
+	cd $tmpdir
+	wget https://github.com/lparenteau/$progname/tarball/master -O $progname.tar.gz
+	tar -zxvf $progname.tar.gz
+	cp -v lparenteau-$progname-*/r/*.m $gtmdir/r/
+	cp -v lparenteau-$progname-*/script/* $gtmdir/script/
+	cd -
+	rm -Rf $tmpdir
+}
+
 case "$1" in
 	start)
 		start
@@ -107,8 +119,15 @@ case "$1" in
 	status)
 		status
 		;;
+	update)
+		update
+		stop
+		start
+		sleep 1
+		status
+		;;
 	*)
-		echo "Usage: $0 {start|stop|status|restart} <configfile>"
+		echo "Usage: $0 {start|stop|status|restart|update} <configfile>"
 		exit 1
 		;;
 esac
