@@ -65,6 +65,9 @@ getfile(docroot,urlroot)
 	new dontcare,file,d1,d2
 	; Remove urlroot from requested URI so it points into docroot
 	set file=$zparse(docroot_"/"_$zextract(request("uri"),$zlength(urlroot)+1,$zlength(request("uri"))))
+	; If the target do not exist (file is empty) send a 404 not found.
+	if file="" do set^response(404) quit file
+
 	; If the request is a directory, but is missing the final "/", permanently redirect it to the correct location
 	set d1=$zparse(file,"DIRECTORY")
 	set d2=$zparse(file_"/","DIRECTORY")
@@ -74,7 +77,7 @@ getfile(docroot,urlroot)
 	.	set file=""
 	else  do
 	.	; If the requested URI is a directory, use the default file.
-	.	if $zparse(file,"DIRECTORY")=file set file=file_conf("index")
+	.	if d1=file set file=file_conf("index")
 	.	; If the file doesn't exist, send a 404 not found.
 	.	set dontcare=$zsearch("")
 	.	if ($zsearch(file)="")!($zextract(file,0,$zlength(docroot))'=docroot) do set^response(404)  set file=""

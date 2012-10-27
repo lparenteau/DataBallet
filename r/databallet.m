@@ -102,14 +102,33 @@ start()
 	; Start the HTTP server.
 	;
 	set $ZTRAP="do errhandler^databallet"
-	; Cleanup scratch global
 	new conf
 	do conf
+	; Cleanup scratch global
 	kill @TMP@("DataBallet")
+	; Start logging process
 	job start^log(conf("log")):(output="/dev/null":error="/dev/null")
+	new port
+	set port=$order(conf("listenon",""))
+	for  quit:port=""  do
+	.	job listen^databallet(port):(output="/dev/null":error="/dev/null")
+	.	set port=$order(conf("listenon",port))
+
+	; Coffee break...
+	for  quit:$data(@TMP@("DataBallet","quit"))  hang 5
+
+	quit
+
+listen(port)
+	;
+	; Listen on a particular socket for incomming connection
+	;
+	set $ZTRAP="do errhandler^databallet"
+	new conf
+	do conf
 	new socket,key,handle,p,socketfd
 	set socket="databallet"
-	open socket:(ZLISTEN=conf("listenon")_":TCP":znoff:zdelay:zbfsize=2048:zibfsize=2048:attach="databallet"):30:"SOCKET"
+	open socket:(ZLISTEN=conf("listenon",port)_":TCP":znoff:zdelay:zbfsize=2048:zibfsize=2048:attach="databallet"):30:"SOCKET"
 	use socket
 	write /listen(5)
 	; When a connection will be made and the connected socket created, it will use the next number, so we can use that to
@@ -118,11 +137,12 @@ start()
 	; the socket we want is actually the 3rd one at the end of the list.
 	set p="ls"
 	open p:(command="ls -1 /proc/"_$job_"/fd/ | tail -n 3 | head -n 1")::"PIPE"
+	;open p:(command="ls -1 /proc/"_$job_"/fd/ | tail -n 1")::"PIPE"
 	use p
 	read socketfd
 	close p
 	use socket
-	set socketfd=socketfd+1
+	set socketfd=socketfd+2
 	for  quit:$data(@TMP@("DataBallet","quit"))  do
 	.	set key=""
 	.	for  do  quit:key'=""  quit:$data(@TMP@("DataBallet","quit"))
@@ -131,7 +151,7 @@ start()
 	.	quit:$data(@TMP@("DataBallet","quit"))
 	.	set handle=$piece(key,"|",2)
 	.	; Spawn a new process to handle the connection then close the connected socket as we won't use it from here.
-	.	zsystem "$gtm_dist/mumps -run serve^databallet <&"_socketfd_" >&"_socketfd_" 2>>"_conf("errorlog")_" &"
+	.	zsystem "PORT="_port_" $gtm_dist/mumps -run serve^databallet <&"_socketfd_" >&"_socketfd_" 2>>"_conf("errorlog")_" &"
 	.	close socket:(socket=handle:exception="new dontcare")
 	.	use socket
 	close socket
@@ -142,13 +162,13 @@ serve()
 	; Server web page(s) to a connected client.
 	;
 	set $ZTRAP="do errhandler^databallet"
-	; VIEW "TRACE":1:"^trace"
 	new conf
 	do conf
-	new line,eol,delim,connection
+	new line,eol,delim,connection,port
 	set eol=$char(13)_$char(10)
 	set delim=$char(10)
 	set timeout=10
+	set connection("PORT")=$ztrnlnm("PORT","","","","","VALUE")
 	use $io:(nowrap:delim=delim:znoff:zdelay:zbfsize=2048:zibfsize=2048)
 	read line:timeout
 	if $test,'$zeof do
@@ -158,7 +178,6 @@ serve()
 	.	else  if connection("HTTPVER")="HTTP/1.0" set connection("CONNECTION")="CLOSE" do keepalive(line) if 1
 	.	else  if connection("HTTPVER")="" do serve09(line) if 1
 	.	else  do senderr^response("505")
-	; VIEW "TRACE":0:"^trace"
 	quit
 
 serve09(line)
