@@ -99,6 +99,7 @@ serve()
 	kill response
 	merge response=@CACHE@(host,hash)
 	do init^response()
+	set response("cached")=1
 
 	; Validate the client's cache.
 	do validatecache^request()

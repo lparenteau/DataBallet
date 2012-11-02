@@ -93,7 +93,7 @@ conf()
 	set conf("compressible","application/javascript")=1
 
 	; DataBallet version : YYYYMMDD
-	set databalletver=20121022
+	set databalletver=20121101
 
 	quit
 
@@ -107,7 +107,7 @@ start()
 	; Cleanup scratch global
 	kill @TMP@("DataBallet")
 	; Start logging process
-	job start^log(conf("log")):(output="/dev/null":error="/dev/null")
+	job start^log($get(conf("log"),""),$get(conf("extlog"),"")):(output="/dev/null":error="/dev/null")
 	new port
 	set port=$order(conf("listenon",""))
 	for  quit:port=""  do

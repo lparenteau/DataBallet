@@ -55,7 +55,7 @@ senderr(status)
 	set:'$data(response("date")) response("date")=$horolog
 	set:'$data(request("method")) request("method")=""
 	set:'$data(request("uri")) request("uri")=""
-	do common^log()
+	do log^log()
 
 	quit
 
@@ -143,7 +143,7 @@ send()
 	.	else  do:$data(response("content")) sendcontent()
 
 	; Log request/response
-	do common^log()
+	do log^log()
 
 	quit
 
