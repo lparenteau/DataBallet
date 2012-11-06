@@ -28,6 +28,11 @@ handle(docroot,urlroot,AUTH)
 	; Support GET, HEAD, PUT, and POST methods
 	quit:'$$methodis^request("GET,HEAD,PUT,POST")
 	
+	; If the connection is not secure, redirect to get a secure connection
+	if '$$issecure^connection() do  quit
+	.	if '$data(request("headers","HOST")) do set^response(401)  if 1
+	.	else  do set^response(301)  set response("headers","Location")="https://"_$zpiece(request("headers","HOST"),":",1)_request("uri")
+
 	; Default urlroot
 	if '$data(urlroot) new urlroot set urlroot="/"
 	; Default AUTH

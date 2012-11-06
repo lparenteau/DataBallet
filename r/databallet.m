@@ -93,7 +93,7 @@ conf()
 	set conf("compressible","application/javascript")=1
 
 	; DataBallet version : YYYYMMDD
-	set databalletver=20121101
+	set databalletver=20121105
 
 	quit
 
@@ -137,7 +137,6 @@ listen(port)
 	; the socket we want is actually the 3rd one at the end of the list.
 	set p="ls"
 	open p:(command="ls -1 /proc/"_$job_"/fd/ | tail -n 3 | head -n 1")::"PIPE"
-	;open p:(command="ls -1 /proc/"_$job_"/fd/ | tail -n 1")::"PIPE"
 	use p
 	read socketfd
 	close p
@@ -168,7 +167,7 @@ serve()
 	set eol=$char(13)_$char(10)
 	set delim=$char(10)
 	set timeout=10
-	set connection("PORT")=$ztrnlnm("PORT","","","","","VALUE")
+	set connection("PORT")=$$FUNC^%UCASE($ztrnlnm("PORT","","","","","VALUE"))
 	use $io:(nowrap:delim=delim:znoff:zdelay:zbfsize=2048:zibfsize=2048)
 	read line:timeout
 	if $test,'$zeof do
