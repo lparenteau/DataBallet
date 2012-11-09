@@ -27,7 +27,7 @@ handle(docroot,urlroot,NEWS)
 	new localvar
 
 	; Support GET and HEAD methods
-	quit:'$$methodis^request("GET,HEAD,PUT,POST")
+	quit:'$$methodis^request("GET,HEAD,PUT,POST",1)
 	
 	; Default urlroot
 	if '$data(urlroot) new urlroot set urlroot="/"
@@ -50,7 +50,7 @@ handle(docroot,urlroot,NEWS)
 	else  if request("uri")=(urlroot_"archive/") do archive(docroot,urlroot)  if 1
 	else  if request("uri")=(urlroot_"admin/") do admin(docroot,urlroot)  if 1
 	else  if $zextract(request("uri"),1,$zlength(urlroot_"admin/"))=(urlroot_"admin/") do adminaction(docroot,urlroot)  if 1
-	else  if $zextract(request("uri"),1,$zlength(urlroot_"posts/"))=(urlroot_"posts/") do post(docroot)  if 1
+	else  if $zextract(request("uri"),1,$zlength(urlroot_"posts/"))=(urlroot_"posts/") do post(docroot,urlroot)  if 1
 	; Everything else is 404 Not Found.
 	else  do set^response(404) quit
 
@@ -180,14 +180,17 @@ archive(docroot,urlroot)
 
 	quit
 
-post(docroot)
+post(docroot,urlroot)
 	;
 	; Handle specific post
 	;
 	new lastmod,postid
 
 	set postid=$zpiece(request("uri"),"/",4,4)
-	if '$data(@NEWS@("post",postid)) do set^response(405) quit
+	; Redirect to archive if no post requested
+	if postid="" do set^response(301)  set response("headers","Location")=urlroot_"archive/" quit
+	; 404 if requested post does not exist
+	if '$data(@NEWS@("post",postid)) do set^response(404) quit
 	; Use template engine to load the header of the page.  Convention is to use '<docroot>/start.html', which can include a <title>{%}title{%}</title> line in there
 	; to make use of @NEWS@("title")
 	set localvar("title")=$get(@NEWS@("title"))_" | "_@NEWS@("post",postid,"title")

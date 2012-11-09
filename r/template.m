@@ -28,7 +28,7 @@ handle(docroot,urlroot)
 	;
 
 	; Support GET and HEAD methods
-	quit:'$$methodis^request("GET,HEAD")
+	quit:'$$methodis^request("GET,HEAD",1)
 
 	; Templates are pretty much handled like static file, so use static's getfile to
 	; get the full file + pathname to the requested element.  An appropriate HTTP error

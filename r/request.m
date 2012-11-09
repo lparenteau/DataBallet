@@ -53,7 +53,7 @@ parsehdrs(line)
 
 	quit
 
-methodis(methods)
+methodis(methods,setstatus)
 	;
 	; Compare current request's method with the comma seperated list of methods.
 	;
@@ -62,15 +62,15 @@ methodis(methods)
 	; Method is in the supplied list
 	quit:p'="" 1
 	; Method is not in the supplied list
-	do set^response(405)
+	do:$data(setstatus) set^response(405)
 	quit 0
 
 validatecache()
 	;
-	; Validate the cachem, based on request and response.
+	; Validate the cache, based on request and response.
 	;
 	new status
-	set status=200
+	set status=$get(response("status"),200)
 
 	; It is never valid if the client request no-cache.
 	if $get(request("headers","CACHE-CONTROL"))'="no-cache" do

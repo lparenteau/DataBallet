@@ -93,7 +93,7 @@ conf()
 	set conf("compressible","application/javascript")=1
 
 	; DataBallet version : YYYYMMDD
-	set databalletver=20121105
+	set databalletver=20121108
 
 	quit
 

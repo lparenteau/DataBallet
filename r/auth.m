@@ -26,7 +26,7 @@ handle(docroot,urlroot,AUTH)
 	;
 
 	; Support GET, HEAD, PUT, and POST methods
-	quit:'$$methodis^request("GET,HEAD,PUT,POST")
+	quit:'$$methodis^request("GET,HEAD,PUT,POST",1)
 	
 	; If the connection is not secure, redirect to get a secure connection
 	if '$$issecure^connection() do  quit

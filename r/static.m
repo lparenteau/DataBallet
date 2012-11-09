@@ -29,7 +29,7 @@ handle(docroot,urlroot,file)
 	;
 
 	; Support GET and HEAD methods
-	quit:'$$methodis^request("GET,HEAD")
+	quit:'$$methodis^request("GET,HEAD",1)
 
 	; Get the path + file name.  An appropriate HTTP error message will be set if the file isn't found.
 	if '$data(urlroot) new urlroot set urlroot="/"
