@@ -44,6 +44,75 @@ encode(glo)
 
 	quit json
 
+decode(json,var)
+	;
+	; Populate the local variable 'var' based on the json string received.
+	; Return 0 on success, 1 otherwise
+	;
+	quit $$indecode(json,var)
+
+indecode(json,var,nextisname,inarray)
+	;
+	; Populate the local variable 'var' based on the json string received.
+	; Return 0 on success, 1 otherwise
+	;
+	new status,first,subscript,length,base,end
+
+	; Quit on empty string
+	quit:json="" 1
+
+	set status=0
+	set end=0
+	set length=$zlength(json)
+	if $zextract(var,$zlength(var))=")" set base=$zextract(var,1,$zlength(var)-1)_","
+	else  set base=var_"("
+	for  quit:json=""  quit:status'=0  quit:end=1  do
+	.	set first=$zextract(json,1,1)
+	.	if first="{" do  if 1
+	.	.	set:$get(inarray,0)=1 var=base_"0)" ; First item of array, add a '0' subscript
+	.	.	set json=$zextract(json,2,length) ; skip over {
+	.	.	set status=$$indecode^json(.json,var,1)
+	.	else  if first="," do  if 1
+	.	.	set json=$zextract(json,2,length) ; skip over ,
+	.	.	if $get(inarray,0)>0 do
+	.	.	.	set subscript=inarray
+	.	.	.	set inarray=inarray+1
+	.	.	else  do
+	.	.	.	set subscript=$zpiece(json,"""",2)
+	.	.	.	set json=$zpiece(json,"""",3,length) ; skip over ..."
+	.	.	set var=base_""""_subscript_""")"
+	.	else  if first=":" do  if 1
+	.	.	set json=$zextract(json,2,length) ; skip over :
+	.	else  if first="[" do  if 1
+	.	.	set json=$zextract(json,2,length) ; skip over [
+	.	.	set status=$$indecode^json(.json,var,0,1)
+	.	else  if first="""" do  if 1
+	.	.	set:$get(inarray,0)=1 var=base_"0)" ; First item of array, add a '0' subscript
+	.	.	if $get(nextisname,0)=1 set var=base_""""_$zpiece(json,"""",2)_""")" set nextisname=0
+	.	.	else  set @var=$zpiece(json,"""",2)
+	.	.	set json=$zpiece(json,"""",3,length) ; skip over ..."
+	.	else  if first="}" do  if 1
+	.	.	set json=$zextract(json,2,length) ; skip over }
+	.	.	set end=1
+	.	else  if first="]" do  if 1
+	.	.	set json=$zextract(json,2,length) ; skip over ]
+	.	.	set end=1
+	.	else  if $$FUNC^%UCASE($zextract(json,1,5))="FALSE" do  if 1
+	.	.	set:$get(inarray,0)=1 var=base_"0)" ; First item of array, add a '0' subscript
+	.	.	set @var=0
+	.	.	set json=$zextract(json,6,length) ; skip over false
+	.	else  if $$FUNC^%UCASE($zextract(json,1,4))="TRUE" do  if 1
+	.	.	set:$get(inarray,0)=1 var=base_"0)" ; First item of array, add a '0' subscript
+	.	.	set @var=1
+	.	.	set json=$zextract(json,5,length) ; skip over true
+	.	else  do ; consider its a number
+	.	.	set:$get(inarray,0)=1 var=base_"0)" ; First item of array, add a '0' subscript
+	.	.	set @var=$get(@var,"")_$zextract(json,1)
+	.	.	set json=$zextract(json,2,length) ; skip over the 1st digit
+	set var=base
+
+	quit status
+
 escape(txt)
 	;
 	; Return an escaped JSON string
