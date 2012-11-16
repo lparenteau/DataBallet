@@ -44,14 +44,7 @@ encode(glo)
 
 	quit json
 
-decode(json,var)
-	;
-	; Populate the local variable 'var' based on the json string received.
-	; Return 0 on success, 1 otherwise
-	;
-	quit $$indecode(json,var)
-
-indecode(json,var,nextisname,inarray)
+decode(json,var,nextisname,inarray)
 	;
 	; Populate the local variable 'var' based on the json string received.
 	; Return 0 on success, 1 otherwise
@@ -71,7 +64,7 @@ indecode(json,var,nextisname,inarray)
 	.	if first="{" do  if 1
 	.	.	set:$get(inarray,0)=1 var=base_"0)" ; First item of array, add a '0' subscript
 	.	.	set json=$zextract(json,2,length) ; skip over {
-	.	.	set status=$$indecode^json(.json,var,1)
+	.	.	set status=$$decode^json(.json,var,1)
 	.	else  if first="," do  if 1
 	.	.	set json=$zextract(json,2,length) ; skip over ,
 	.	.	if $get(inarray,0)>0 do
@@ -85,7 +78,7 @@ indecode(json,var,nextisname,inarray)
 	.	.	set json=$zextract(json,2,length) ; skip over :
 	.	else  if first="[" do  if 1
 	.	.	set json=$zextract(json,2,length) ; skip over [
-	.	.	set status=$$indecode^json(.json,var,0,1)
+	.	.	set status=$$decode^json(.json,var,0,1)
 	.	else  if first="""" do  if 1
 	.	.	set:$get(inarray,0)=1 var=base_"0)" ; First item of array, add a '0' subscript
 	.	.	if $get(nextisname,0)=1 set var=base_""""_$zpiece(json,"""",2)_""")" set nextisname=0
