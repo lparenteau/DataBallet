@@ -28,7 +28,7 @@ route()	;
 	; Find the correct route and handle the request
 	new uri,host,handler,len,i
 	set uri=request("uri")
-	set host=$get(request("headers","HOST"),"*")
+	set host=$zpiece($get(request("headers","HOST"),"*"),":",1)
 	set:'$data(conf("routing",host)) host="*"
 	; Try to locate a handler for the requested URI on the requested host.
 	for i=$zlength(uri,"/"):-1:1 do  quit:$data(conf("routing",host,uri))
