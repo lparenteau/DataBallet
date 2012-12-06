@@ -64,7 +64,8 @@ loadcontent(docroot,file)
 	;  <%include%file%/> : Replace the whole line with the content of 'file'.
 	;     Example: <%include%/header.html%/>
 	;  <%set%var=value%/> : Set a local variable value.  The whole line is dropped from output.
-	;     Example: <%set%title=My Example Web Site%/>
+	;     Example: <%set%topic=Software%/>
+	;     Example: <%set%title=My Example {%}topic{%} Web Site%/>
 	;  {%}var{%} : Replace the {%}...{%} string with the value of the local variable, if it exist.  In all case, the {%}...{%} string is dropped from output.
 	;     Example: Welcome to {%}title{%}.
 	;  <%if%var=integer%/> : The whole line is dropped from the output.  If 'var' is different from 'integer', all lines until <%endif%/> are dropped.
@@ -77,6 +78,12 @@ loadcontent(docroot,file)
 	;		<%endif%/>
 	;	<%endif%/>
 	;     Note: If 'var' is undefined it defaults to 0.
+	;  <%foreach%post%> :	The whole line is dropped from the output.  Text block will be repeated for all value of 'post'.
+	;  <%endforeach%/> : The whole line is dropped
+	;    Example:
+	;      <%foreach%post%/>
+	;        Post is titled {%}post,title{%}
+	;      <%endforeach%/>
 	;
 	; Return the last modified date, which will be the latest one from all the
 	; files accessed.
@@ -94,31 +101,60 @@ loadcontent(docroot,file)
 
 	set response("filelist",$order(response("filelist",""),-1)+1)=file
 	; Read the file and fill response("content")
-	new line,token,value,start,end,skip
-	set skip=0
+	new line,token,value,start,end,skip,foreach,count,lines,lncount,inloop,forskip
+	set skip=0,foreach="",count=0,inloop=0,forskip=0
 	open file:(readonly:chset="M")
 	use file:width=1048576
+innerloop ; Must use innerloop+3
 	for  read line quit:$zeof  do
+	.	set:foreach'="" lines(lncount)=line,lncount=lncount+1
 	.	set start=$zfind(line,"<%")
 	.	if start=0 do
-	.	.	for  quit:$zfind(line,"{%}")=0  do
-	.	.	.	set line=$zpiece(line,"{%}",1)_$get(localvar($zpiece(line,"{%}",2)),"")_$zpiece(line,"{%}",3,$zlength(line))
-	.	.	do:skip=0 addcontent^response(line_delim)
+	.	.	if (skip=0)&(forskip=0) do
+	.	.	.	for  quit:$zfind(line,"{%}")=0  do
+	.	.	.	.	new var
+	.	.	.	.	if $zfind(line,",")=0 set var="localvar("""_$zpiece(line,"{%}",2)_""")"
+	.	.	.	.	else  set var="localvar("""_$zpiece($zpiece(line,"{%}",2),",",1)_""","_count_","""_$zpiece($zpiece(line,"{%}",2),",",2)_""")"
+	.	.	.	.	set line=$zpiece(line,"{%}",1)_$get(@var,"")_$zpiece(line,"{%}",3,$zlength(line))
+	.	.	.	do addcontent^response(line_delim)
 	.	else  do
 	.	.	set end=$zfind(line,"%/>")
 	.	.	if (end'=0)&(end>start) do
 	.	.	.	set token=$zpiece(line,"%",2)
 	.	.	.	set value=$zpiece(line,"%",3)
-	.	.	.	if token="set" do
-	.	.	.	.	set localvar($zpiece(value,"=",1))=$zpiece(value,"=",2,$zlength(line))
-	.	.	.	else  if token="if" do
+	.	.	.	if token="set" do:(skip=0)&(forskip=0)
+	.	.	.	.	new varname
+	.	.	.	.	set varname=$zpiece(value,"=",1)
+	.	.	.	.	set line=$zpiece(line,"=",2,$zlength(line))
+	.	.	.	.	set value=""
+	.	.	.	.	for  quit:$zfind(line,"{%}")=0  do
+	.	.	.	.	.	set value=value_$zpiece(line,"{%}",1)_localvar($zpiece(line,"{%}",2))
+	.	.	.	.	.	set line=$zpiece(line,"{%}",3,$zlength(line))
+	.	.	.	.	set value=value_$zpiece(line,"%",1)
+	.	.	.	.	set localvar(varname)=value
+	.	.	.	else  if token="if" do:(skip=0)&(forskip=0)
 	.	.	.	.	set:$get(localvar($zpiece(value,"=",1)),0)'=$zpiece(value,"=",2,$zlength(line)) skip=skip+1
-	.	.	.	else  if token="endif" set:skip>0 skip=skip-1
-	.	.	.	else  if token="include" do
+	.	.	.	else  if (token="endif")&(forskip=0) set:skip>0 skip=skip-1
+	.	.	.	else  if token="foreach" do:(skip=0)&(forskip=0)
+	.	.	.	.	set foreach=value
+	.	.	.	.	set lncount=0
+	.	.	.	.	set count=$order(localvar(foreach,""))
+	.	.	.	.	if count="" set foreach="",forskip=forskip+1
+	.	.	.	else  if token="endforeach" do:skip=0
+	.	.	.	.	if foreach="" set:forskip>0 forskip=forskip-1
+	.	.	.	.	else  set inloop=1
+	.	.	.	else  if token="include" do:(skip=0)&(forskip=0)
 	.	.	.	.	new innerlastmod
 	.	.	.	.	set innerlastmod=$$loadcontent(docroot,docroot_value)
 	.	.	.	.	; Update last modified date if that included file is newer than the base file.
 	.	.	.	.	set:$$isnewer^date(innerlastmod,lastmod) lastmod=innerlastmod
+	.	if inloop=1 do
+	.	.	set lncount=$order(lines(lncount))
+	.	.	if lncount'="" set line=lines(lncount) goto innerloop+3
+	.	.	else  do
+	.	.	.	set count=$order(localvar(foreach,count))
+	.	.	.	if count="" set foreach="",inloop=0
+	.	.	.	else  set lncount=0,line=lines(lncount),inloop=1 goto innerloop+3
 	close file
 	use old
 

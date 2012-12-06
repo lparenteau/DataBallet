@@ -41,12 +41,15 @@ handle(docroot,urlroot,NEWS)
 	.	set response("headers","Cache-Control")="no-cache"
 	else  set localvar("auth")=1
 
+	; Load title
+	set localvar("title")=$get(@NEWS@("title"))
+
 	; Return an atom feed for a "/<urlroot>/atom.xml" request,
 	; an archive/all posts HTML page for a "/<urlroot>/archive/" request,
 	; a specific post HTML page for a "/<urlroot>/posts/<id>" request,
 	; and a home HTML page with the latest 5 elements for a "/<urlroot>/" request.
 	if request("uri")=(urlroot_"atom.xml") do atomfeed(urlroot)  if 1
-	else  if request("uri")=urlroot do main(docroot,urlroot)  if 1
+	else  if request("uri")=urlroot do archive(docroot,urlroot,5)  if 1
 	else  if request("uri")=(urlroot_"archive/") do archive(docroot,urlroot)  if 1
 	else  if request("uri")=(urlroot_"admin/") do admin(docroot,urlroot)  if 1
 	else  if $zextract(request("uri"),1,$zlength(urlroot_"admin/"))=(urlroot_"admin/") do adminaction(docroot,urlroot)  if 1
@@ -82,7 +85,7 @@ atomfeed(urlroot)
 	set author=author_"</author>"
 
 	; Posts
-	set postid=$order(@NEWS@("post",""))
+	set postid=$order(@NEWS@("post",""),-1)
 	set posts=""
 	set response("lastmod")="0,0"
 	for  quit:postid=""  do
@@ -95,7 +98,7 @@ atomfeed(urlroot)
 	.	set:$$isnewer^date(@NEWS@("post",postid,"updated"),response("lastmod")) response("lastmod")=@NEWS@("post",postid,"updated")
 	.	set response("glolist",NEWS_"(""post"","_postid_",""updated"")")=""
 	.	; Get next post
-	.	set postid=$order(@NEWS@("post",postid))
+	.	set postid=$order(@NEWS@("post",postid),-1)
 
 	set header=header_"<updated>"_$zdate(response("lastmod"),"YEAR-MON-DD")_"T"_$zdate(response("lastmod"),"24:60:SS")_"Z</updated>"
 
@@ -108,24 +111,28 @@ atomfeed(urlroot)
 
 	quit
 
-main(docroot,urlroot)
+archive(docroot,urlroot,max)
 	;
-	; Handle main page
+	; Handle main page (with a maximum number of entries displayed) or a full archive page (with no maximum number of entries).
+	;
+	; We use the templating engine to build the page, so we only have to populate localvar(...) with what we want, then load the template.
+	; The template loaded is '<docroot>/news.html'.
 	;
 	new lastmod
 
-	; Use template engine to load the header of the page.  Convention is to use '<docroot>/start.html', which can include a <title>{%}title{%}</title> line in there
-	; to make use of @NEWS@("title"), and {%}auth{%} to insert login/logout/admin links
-	set localvar("title")=$get(@NEWS@("title"))
-	set response("lastmod")=$$loadcontent^template(docroot,docroot_"/start.html")
+	; Request action is 'main' for the / page (with a max) or 'archive' for '/archive/'
+	set localvar("action")=$select($data(max):"main",1:"archive")
 
-	; Populate content from database, up to 5 items, if any
+	; Load content from database, up to max items, if any
 	new postid,cnt
 	set postid=$order(@NEWS@("post",""),-1)
 	set cnt=0
-	do addcontent^response("<h2>"_$get(@NEWS@("title"))_"</h2>")
-	for  quit:postid=""  quit:cnt=5  do
-	.	do addcontent^response("<h3>"_@NEWS@("post",postid,"title")_"</h3><h4>"_$zdate(@NEWS@("post",postid,"published"),"DAY, DD MON YEAR")_"</h4><p>"_@NEWS@("post",postid,"content")_"</p>")
+	set response("lastmod")=0
+	for  quit:postid=""  quit:cnt=$get(max,-1)  do
+	.	set localvar("post",cnt,"title")=@NEWS@("post",postid,"title")
+	.	set localvar("post",cnt,"date")=$zdate(@NEWS@("post",postid,"published"),"DAY, DD MON YEAR")
+	.	set localvar("post",cnt,"content")=@NEWS@("post",postid,"content")
+	.	set localvar("post",cnt,"id")=postid
 	.	; Update last modified date if needed.
 	.	set:$$isnewer^date(@NEWS@("post",postid,"updated"),response("lastmod")) response("lastmod")=@NEWS@("post",postid,"updated")
 	.	set response("glolist",NEWS_"(""post"","_postid_",""updated"")")=""
@@ -133,45 +140,9 @@ main(docroot,urlroot)
 	.	set postid=$order(@NEWS@("post",postid),-1)
 	.	set cnt=cnt+1
 
-	; Add link to archives (all posts)
-	do addcontent^response("<p>Browse <a href="""_urlroot_"archive/"">older posts</a>.</p>")
+	; Use the template engine to populate the response.
+	set lastmod=$$loadcontent^template(docroot,docroot_"/news.html")
 
-	; Use template engine to load the footer of the page.  Convention is to use '<docroot>/end.html'.
-	set lastmod=$$loadcontent^template(docroot,docroot_"/end.html")
-	; Update last modified date if needed.
-	set:$$isnewer^date(lastmod,response("lastmod")) response("lastmod")=lastmod
-
-	; Set response's content type
-	set response("headers","Content-Type")="text/html"
-
-	quit
-
-archive(docroot,urlroot)
-	;
-	; Handle archive page
-	;
-	new lastmod
-
-	; Use template engine to load the header of the page.  Convention is to use '<docroot>/start.html', which can include a <title>{%}title{%}</title> line in there
-	; to make use of @NEWS@("title")
-	set localvar("title")=$get(@NEWS@("title"))_" | Archive"
-	set response("lastmod")=$$loadcontent^template(docroot,docroot_"/start.html")
-
-	; List all posts from database
-	new postid,cnt
-	set postid=$order(@NEWS@("post",""),-1)
-	set cnt=0
-	do addcontent^response("<h2>"_$get(@NEWS@("title"))_"</h2><h3>Archive</h3>")
-	for  quit:postid=""  do
-	.	do addcontent^response("<a href="""_urlroot_"posts/"_postid_""">"_@NEWS@("post",postid,"title")_"</a><br>")
-	.	; Update last modified date if needed.
-	.	set:$$isnewer^date(@NEWS@("post",postid,"updated"),response("lastmod")) response("lastmod")=@NEWS@("post",postid,"updated")
-	.	set response("glolist",NEWS_"(""post"","_postid_",""updated"")")=""
-	.	; Get next post
-	.	set postid=$order(@NEWS@("post",postid),-1)
-
-	; Use template engine to load the footer of the page.  Convention is to use '<docroot>/end.html'.
-	set lastmod=$$loadcontent^template(docroot,docroot_"/end.html")
 	; Update last modified date if needed.
 	set:$$isnewer^date(lastmod,response("lastmod")) response("lastmod")=lastmod
 
@@ -184,26 +155,34 @@ post(docroot,urlroot)
 	;
 	; Handle specific post
 	;
+	; We use the templating engine to build the page, so we only have to populate localvar(...) with what we want, then load the template.
+	; The template loaded is '<docroot>/news.html'.
+	;
 	new lastmod,postid
 
 	set postid=$zpiece(request("uri"),"/",4,4)
 	; Redirect to archive if no post requested
 	if postid="" do set^response(301)  set response("headers","Location")=urlroot_"archive/" quit
+
 	; 404 if requested post does not exist
 	if '$data(@NEWS@("post",postid)) do set^response(404) quit
-	; Use template engine to load the header of the page.  Convention is to use '<docroot>/start.html', which can include a <title>{%}title{%}</title> line in there
-	; to make use of @NEWS@("title")
-	set localvar("title")=$get(@NEWS@("title"))_" | "_@NEWS@("post",postid,"title")
-	set response("lastmod")=$$loadcontent^template(docroot,docroot_"/start.html")
 
-	; A post from database
-	do addcontent^response("<h2>"_$get(@NEWS@("title"))_"</h2><h3>"_@NEWS@("post",postid,"title")_"</h3><h4>"_$zdate(@NEWS@("post",postid,"published"),"DAY, DD MON YEAR")_"</h4><p>"_@NEWS@("post",postid,"content")_"</p>")
-	; Update last modified date if needed.
-	set:$$isnewer^date(@NEWS@("post",postid,"updated"),response("lastmod")) response("lastmod")=@NEWS@("post",postid,"updated")
+	; Request action is 'post'
+	set localvar("action")="post"
+
+	; Load the post from database
+	set localvar("post_title")=@NEWS@("post",postid,"title")
+	set localvar("post_date")=$zdate(@NEWS@("post",postid,"published"),"DAY, DD MON YEAR")
+	set localvar("post_content")=@NEWS@("post",postid,"content")
+	set localvar("post_id")=postid
+
+	; Set last modified date.
+	set response("lastmod")=@NEWS@("post",postid,"updated")
 	set response("glolist",NEWS_"(""post"","_postid_",""updated"")")=""
 
-	; Use template engine to load the footer of the page.  Convention is to use '<docroot>/end.html'.
-	set lastmod=$$loadcontent^template(docroot,docroot_"/end.html")
+	; Use the template engine to populate the response.
+	set lastmod=$$loadcontent^template(docroot,docroot_"/news.html")
+
 	; Update last modified date if needed.
 	set:$$isnewer^date(lastmod,response("lastmod")) response("lastmod")=lastmod
 
@@ -216,37 +195,41 @@ admin(docroot,urlroot)
 	;
 	; Handle admin page
 	;
+	; We use the templating engine to build the page, so we only have to populate localvar(...) with what we want, then load the template.
+	; The template loaded is '<docroot>/news.html'.
+	;
 	new lastmod
 
 	; This page is only accessible to logged in user
 	if '$$isauthenticated^auth() do set^response(403) quit
 
-	; Use template engine to load the header of the page.  Convention is to use '<docroot>/start.html', which can include a <title>{%}title{%}</title> line in there
-	; to make use of @NEWS@("title")
-	set localvar("title")=$get(@NEWS@("title"))_" | Admin"
-	set response("lastmod")=$$loadcontent^template(docroot,docroot_"/start.html")
+	; Request action is 'admin'
+	set localvar("action")="admin"
 
-	; Link to create a new post
-	do addcontent^response("<h2>"_$get(@NEWS@("title"))_"</h2><p>Create a <a href="""_urlroot_"admin/add/"">New Post</a></p>")
+	; Load current author
+	set localvar("author")=$get(@NEWS@("author","name"))
+	set localvar("author_email")=$get(@NEWS@("author","email"))
+	set localvar("author_uri")=$get(@NEWS@("author","uri"))
 
-	; Form to edit Title and Authors
-	do addcontent^response("<form enctype=""application/x-www-form-urlencoded"" accept-charset=""UTF-8"" action="""_urlroot_"admin/update/"" method=""post""><p><label for=""title"">Title: </label><input type=""text"" name=""title"" /></p><p><label for=""author"">Author: </label><input type=""text"" name=""author"" /></p><p><label for=""email"">Email: </label><input type=""text"" name=""email"" /></p><p><label for=""uri"">URI: </label><input type=""text"" name=""uri"" /></p><p><input type=""submit"" value=""Update"" /></p></form>")
-
-	; List all posts from database
+	; Load all posts title and date from database if any
 	new postid,cnt
 	set postid=$order(@NEWS@("post",""),-1)
 	set cnt=0
-	do addcontent^response("<h3>All Posts</h3>")
+	set response("lastmod")=0
 	for  quit:postid=""  do
-	.	do addcontent^response("<a href="""_urlroot_"posts/"_postid_""">"_@NEWS@("post",postid,"title")_"</a> <a href="""_urlroot_"admin/delete/"_postid_""">Delete</a> <a href="""_urlroot_"admin/edit/"_postid_""">Edit</a><br>")
+	.	set localvar("post",cnt,"title")=@NEWS@("post",postid,"title")
+	.	set localvar("post",cnt,"date")=$zdate(@NEWS@("post",postid,"published"),"DAY, DD MON YEAR")
+	.	set localvar("post",cnt,"id")=postid
 	.	; Update last modified date if needed.
 	.	set:$$isnewer^date(@NEWS@("post",postid,"updated"),response("lastmod")) response("lastmod")=@NEWS@("post",postid,"updated")
 	.	set response("glolist",NEWS_"(""post"","_postid_",""updated"")")=""
 	.	; Get next post
 	.	set postid=$order(@NEWS@("post",postid),-1)
+	.	set cnt=cnt+1
 
-	; Use template engine to load the footer of the page.  Convention is to use '<docroot>/end.html'.
-	set lastmod=$$loadcontent^template(docroot,docroot_"/end.html")
+	; Use the template engine to populate the response.
+	set lastmod=$$loadcontent^template(docroot,docroot_"/news.html")
+
 	; Update last modified date if needed.
 	set:$$isnewer^date(lastmod,response("lastmod")) response("lastmod")=lastmod
 
@@ -259,6 +242,9 @@ adminaction(docroot,urlroot)
 	;
 	; Handle various admin actions
 	;
+	; We use the templating engine to build the page, so we only have to populate localvar(...) with what we want, then load the template.
+	; The template loaded is '<docroot>/news.html'.
+	;
 	new lastmod,action,postid,content,value,i
 
 	; This page is only accessible to logged in user
@@ -267,15 +253,22 @@ adminaction(docroot,urlroot)
 	set action=$zpiece(request("uri"),"/",4,4)
 	set postid=$zpiece(request("uri"),"/",5,5)
 
-	; Use template engine to load the header of the page.  Convention is to use '<docroot>/start.html', which can include a <title>{%}title{%}</title> line in there
-	; to make use of @NEWS@("title")
-	set localvar("title")=$get(@NEWS@("title"))_" | Admin"
-	set response("lastmod")=$$loadcontent^template(docroot,docroot_"/start.html")
-
 	;
-	if action="add" do
+	if action="delete" kill @NEWS@("post",postid) do set^response(303)  set response("headers","Location")=urlroot_"admin/"  if 1
+	else  if action="edit" do  if 1
+	.	set localvar("action")="edit"
+	.	if postid'="" do
+	.	.	set localvar("post_title")=$get(@NEWS@("post",postid,"title"),"")
+	.	.	set localvar("post_date")=$zdate($get(@NEWS@("post",postid,"published"),""),"DAY, DD MON YEAR")
+	.	.	set localvar("post_content")=$get(@NEWS@("post",postid,"content"),"")
+	.	.	set localvar("post_summary")=$get(@NEWS@("post",postid,"summary"),"")
+	.	.	set localvar("post_id")=postid
+	.	; Use the template engine to populate the response.
+	.	set response("lastmod")=$$loadcontent^template(docroot,docroot_"/news.html")
+	.	; Set response's content type
+	.	set response("headers","Content-Type")="text/html"
+	else  if action="add" do  if 1
 	.	if $$methodis^request("PUT,POST") do  if 1
-	.	.	do addcontent^response("<h2>Post published!</h2>")
 	.	.	for i=1:1:3 set value=$zpiece(request("content"),"&",i),content($zpiece(value,"=",1))=$$paragraph($$decode^url($zpiece(value,"=",2,$zlength(line))))
 	.	.	tstart ():serial
 	.	.	set:postid="" (postid,@NEWS@("count"))=$get(@NEWS@("count"))+1
@@ -285,13 +278,10 @@ adminaction(docroot,urlroot)
 	.	.	set @NEWS@("post",postid,"updated")=$horolog
 	.	.	set:$get(@NEWS@("post",postid,"published"))="" @NEWS@("post",postid,"published")=@NEWS@("post",postid,"updated")
 	.	.	tcommit
-	.	else  do
-	.	.	do addcontent^response("<h2>New post</h2><form enctype=""application/x-www-form-urlencoded"" accept-charset=""UTF-8"" action="""_urlroot_"admin/add/"" method=""post""><p><label for=""title"">Title: </label><input type=""text"" name=""title"" /></p><p><label for=""summary"">Summary: </label><input type=""text"" name=""summary"" /></p><p><label for=""content"">Content: </label><textarea wrap=""virtual"" name=""content"" rows=""10"" cols=""35""></textarea></p><p><input type=""submit"" value=""Publish"" /></p></form>") if 1
-	else  if action="delete" kill @NEWS@("post",postid) do addcontent^response("<h2>Post deleted</h2>") if 1
-	else  if action="edit" do addcontent^response("<h2>New post</h2><form enctype=""application/x-www-form-urlencoded"" accept-charset=""UTF-8"" action="""_urlroot_"admin/add/"_postid_""" method=""post""><p><label for=""title"">Title: </label><input type=""text"" name=""title"" value="""_@NEWS@("post",postid,"title")_"""/></p><p><label for=""summary"">Summary: </label><input type=""text"" name=""summary"" value="""_@NEWS@("post",postid,"summary")_"""/></p><p><label for=""content"">Content: </label><textarea wrap=""virtual"" name=""content"" rows=""10"" cols=""35"">"_@NEWS@("post",postid,"content")_"</textarea></p><p><input type=""submit"" value=""Publish"" /></p></form>") if 1
-	else  if action="update" do
+	.	.	do set^response(303)  set response("headers","Location")=urlroot_"admin/"
+	.	else  do set^response(404)
+	else  if action="update" do  if 1
 	.	if $$methodis^request("PUT,POST") do  if 1
-	.	.	do addcontent^response("<h2>Updated!</h2>")
 	.	.	for i=1:1:4 set value=$zpiece(request("content"),"&",i),content($zpiece(value,"=",1))=$$paragraph($$decode^url($zpiece(value,"=",2,$zlength(line))))
 	.	.	tstart ():serial
 	.	.	set @NEWS@("title")=$get(content("title"))
@@ -299,16 +289,9 @@ adminaction(docroot,urlroot)
 	.	.	set @NEWS@("author","email")=$get(content("email"))
 	.	.	set @NEWS@("author","uri")=$get(content("uri"))
 	.	.	tcommit
-	.	else  kill response("content"),response("lastmod") do set^response(404) quit
-	else  kill response("content"),response("lastmod") do set^response(404) quit
-
-	; Use template engine to load the footer of the page.  Convention is to use '<docroot>/end.html'.
-	set lastmod=$$loadcontent^template(docroot,docroot_"/end.html")
-	; Update last modified date if needed.
-	set:$$isnewer^date(lastmod,response("lastmod")) response("lastmod")=lastmod
-
-	; Set response's content type
-	set response("headers","Content-Type")="text/html"
+	.	.	do set^response(303)  set response("headers","Location")=urlroot_"admin/"
+	.	else  do set^response(404)
+	else  do set^response(404)
 
 	quit
 

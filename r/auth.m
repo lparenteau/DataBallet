@@ -184,9 +184,7 @@ adduser(username,password,AUTH)
 	set saltedpass=$$hash(password,salt)
 
 	tstart ():serial
-	if '$data(@AUTH@("accounts",username)) do
-	.	set @AUTH@("accounts",username,"password")=saltedpass
-	.	set @AUTH@("accounts",username,"salt")=salt
+	set:'$data(@AUTH@("accounts",username)) @AUTH@("accounts",username,"password")=saltedpass,@AUTH@("accounts",username,"salt")=salt
 	tcommit
 
 	quit

@@ -37,7 +37,7 @@ conf()
 	; set conf("status",300)="Multiple Choices"
 	set conf("status",301)="Moved Permanently"
 	; set conf("status",302)="Found"
-	; set conf("status",303)="See Other"
+	set conf("status",303)="See Other"
 	set conf("status",304)="Not Modified"
 	; set conf("status",305)="Use Proxy"
 	; set conf("status",307)="Temporary Redirect"
@@ -93,7 +93,7 @@ conf()
 	set conf("compressible","application/javascript")=1
 
 	; DataBallet version : YYYYMMDD
-	set databalletver=20121121
+	set databalletver=20121206
 
 	quit
 
