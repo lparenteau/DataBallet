@@ -254,8 +254,8 @@ addcontent(data)
 	new last,max,i,length
 
 	; Default to 4080 bytes, since the default record size is 4096.
-	; Need to remove 64 bytes for the hashed key, the host's length, and 16 bytes for 'content' and index
-	set max=$get(conf("cacherecsize"),4080)-(64+$zlength($get(request("headers","HOST"),0))+16)
+	; Need to remove 64 bytes for the hashed key, the host's length, and some padding
+	set max=$get(conf("cacherecsize"),4080)-(64+$zlength($get(request("headers","HOST"),"*"))+64)
 	set length=$zlength(data)
 
 	if $data(response("content"))=0 set last=0,response("content-length")=0
