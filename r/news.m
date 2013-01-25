@@ -1,6 +1,6 @@
 	;
 	; This file is part of DataBallet.
-	; Copyright (C) 2012 Laurent Parenteau <laurent.parenteau@gmail.com>
+	; Copyright (C) 2012-2013 Laurent Parenteau <laurent.parenteau@gmail.com>
 	;
 	; DataBallet is free software: you can redistribute it and/or modify
 	; it under the terms of the GNU Affero General Public License as published by
@@ -270,14 +270,7 @@ adminaction(docroot,urlroot)
 	else  if action="add" do  if 1
 	.	if $$methodis^request("PUT,POST") do  if 1
 	.	.	for i=1:1:3 set value=$zpiece(request("content"),"&",i),content($zpiece(value,"=",1))=$$paragraph($$decode^url($zpiece(value,"=",2,$zlength(line))))
-	.	.	tstart ():serial
-	.	.	set:postid="" (postid,@NEWS@("count"))=$get(@NEWS@("count"))+1
-	.	.	set @NEWS@("post",postid,"title")=$get(content("title"))
-	.	.	set @NEWS@("post",postid,"summary")=$get(content("summary"))
-	.	.	set @NEWS@("post",postid,"content")=$get(content("content"))
-	.	.	set @NEWS@("post",postid,"updated")=$horolog
-	.	.	set:$get(@NEWS@("post",postid,"published"))="" @NEWS@("post",postid,"published")=@NEWS@("post",postid,"updated")
-	.	.	tcommit
+	.	.	do publish^news($get(content("title")),$get(content("summary")),$get(content("content")))
 	.	.	do set^response(303)  set response("headers","Location")=urlroot_"admin/"
 	.	else  do set^response(404)
 	else  if action="update" do  if 1
@@ -305,3 +298,25 @@ paragraph(text)
 	for  quit:$zfind(p,br)=0  do
 	.	set p=$zpiece(p,br,1)_"</p><p>"_$zpiece(p,br,2,$zlength(p))
 	quit p
+
+publish(title,summary,content,published)
+	;
+	; Publish a NEWS entry.
+	;
+	; All parameters are optional and default to an empty string, expect for published which default to $horolog.
+	;
+	new postid
+
+	; Default NEWS
+	if '$data(NEWS) new NEWS set NEWS="^NEWS"
+
+	tstart ():serial
+	set (postid,@NEWS@("count"))=$get(@NEWS@("count"))+1
+	set @NEWS@("post",postid,"title")=$get(title)
+	set @NEWS@("post",postid,"summary")=$get(summary)
+	set @NEWS@("post",postid,"content")=$get(content)
+	set @NEWS@("post",postid,"updated")=$get(published,$horolog)
+	set:$get(@NEWS@("post",postid,"published"))="" @NEWS@("post",postid,"published")=@NEWS@("post",postid,"updated")
+	tcommit
+
+	quit

@@ -1,6 +1,6 @@
 	;
 	; This file is part of DataBallet.
-	; Copyright (C) 2012 Laurent Parenteau <laurent.parenteau@gmail.com>
+	; Copyright (C) 2012-2013 Laurent Parenteau <laurent.parenteau@gmail.com>
 	;
 	; DataBallet is free software: you can redistribute it and/or modify
 	; it under the terms of the GNU Affero General Public License as published by
@@ -80,10 +80,16 @@ decode(json,var,nextisname,inarray)
 	.	.	set json=$zextract(json,2,length) ; skip over [
 	.	.	set status=$$decode^json(.json,var,0,1)
 	.	else  if first="""" do  if 1
+	.	.	new value,piece
 	.	.	set:$get(inarray,0)=1 var=base_"0)" ; First item of array, add a '0' subscript
-	.	.	if $get(nextisname,0)=1 set var=base_""""_$zpiece(json,"""",2)_""")" set nextisname=0
-	.	.	else  set @var=$zpiece(json,"""",2)
-	.	.	set json=$zpiece(json,"""",3,length) ; skip over ..."
+	.	.	set piece=2
+	.	.	set value=$zpiece(json,"""",piece)
+	.	.	for  quit:$zextract(value,$zlength(value))'="\"  do ; Handle espaced '"'
+	.	.	.	set piece=piece+1
+	.	.	.	set value=$zextract(value,1,$zlength(value)-1)_""""_$zpiece(json,"""",piece)
+	.	.	if $get(nextisname,0)=1 set var=base_""""_value_""")" set nextisname=0
+	.	.	else  set @var=value
+	.	.	set json=$zpiece(json,"""",piece+1,length) ; skip over ..."
 	.	else  if first="}" do  if 1
 	.	.	set json=$zextract(json,2,length) ; skip over }
 	.	.	set end=1

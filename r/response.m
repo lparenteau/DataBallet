@@ -1,6 +1,6 @@
 	;
 	; This file is part of DataBallet.
-	; Copyright (C) 2012 Laurent Parenteau <laurent.parenteau@gmail.com>
+	; Copyright (C) 2012-2013 Laurent Parenteau <laurent.parenteau@gmail.com>
 	;
 	; DataBallet is free software: you can redistribute it and/or modify
 	; it under the terms of the GNU Affero General Public License as published by
@@ -196,6 +196,7 @@ sendcontent()
 	.	use cmd
 	.	write data
 	.	write /eof
+	.	set $X=0
 	.	read data
 	.	close cmd
 	.	use old

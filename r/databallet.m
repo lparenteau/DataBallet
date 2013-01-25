@@ -1,6 +1,6 @@
 	;
 	; This file is part of DataBallet.
-	; Copyright (C) 2012 Laurent Parenteau <laurent.parenteau@gmail.com>
+	; Copyright (C) 2012-2013 Laurent Parenteau <laurent.parenteau@gmail.com>
 	;
 	; DataBallet is free software: you can redistribute it and/or modify
 	; it under the terms of the GNU Affero General Public License as published by
@@ -93,7 +93,7 @@ conf()
 	set conf("compressible","application/javascript")=1
 
 	; DataBallet version : YYYYMMDD
-	set databalletver=20121217
+	set databalletver=20130125
 
 	quit
 
@@ -150,7 +150,7 @@ listen(port)
 	.	quit:$data(@TMP@("DataBallet","quit"))
 	.	set handle=$piece(key,"|",2)
 	.	; Spawn a new process to handle the connection then close the connected socket as we won't use it from here.
-	.	zsystem "PORT="_port_" $gtm_dist/mumps -run serve^databallet <&"_socketfd_" >&"_socketfd_" 2>>"_conf("errorlog")_" &"
+	.	zsystem "PORT="_port_" $gtm_dist/mumps -run serve^databallet <&"_socketfd_" >&"_socketfd_" 2>>"_conf("errorlog")_".fork &"
 	.	close socket:(socket=handle:exception="new dontcare")
 	.	use socket
 	close socket

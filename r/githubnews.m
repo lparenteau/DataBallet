@@ -1,6 +1,6 @@
 	;
 	; This file is part of DataBallet.
-	; Copyright (C) 2012 Laurent Parenteau <laurent.parenteau@gmail.com>
+	; Copyright (C) 2012-2013 Laurent Parenteau <laurent.parenteau@gmail.com>
 	;
 	; DataBallet is free software: you can redistribute it and/or modify
 	; it under the terms of the GNU Affero General Public License as published by
@@ -34,15 +34,7 @@ handle(NEWS)
 	set payload=$zpiece(request("content"),"=",2)
 	set status=$$decode^json($$decode^url(payload),"push")
 	if status=0 do  if 1
-	.	for i=0:1:$order(push("commits",""),-1) do
-	.	.	tstart ():serial
-	.	.	set (postid,@NEWS@("count"))=$get(@NEWS@("count"))+1
-	.	.	set @NEWS@("post",postid,"title")="Code committed to GitHub!"
-	.	.	set @NEWS@("post",postid,"summary")=push("commits",i,"message")
-	.	.	set @NEWS@("post",postid,"content")="Commit <a href="""_push("commits",i,"url")_""">#"_push("commits",i,"id")_"</a>: "_push("commits",i,"message")
-	.	.	set @NEWS@("post",postid,"updated")=$horolog
-	.	.	set:$get(@NEWS@("post",postid,"published"))="" @NEWS@("post",postid,"published")=@NEWS@("post",postid,"updated")
-	.	.	tcommit
+	.	for i=0:1:$order(push("commits",""),-1) do publish^news("Code committed to GitHub!",push("commits",i,"message"),"Commit <a href="""_push("commits",i,"url")_""">#"_push("commits",i,"id")_"</a>: "_push("commits",i,"message"))
 	.	do addcontent^response("Thanks! :)")
 	else  do addcontent^response("Sorry... :(")
 
