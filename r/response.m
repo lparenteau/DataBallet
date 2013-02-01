@@ -195,8 +195,8 @@ sendcontent()
 	.	open cmd:(exception="new dontcare":command=response("encoding")_arg:fixed:wrap)::"PIPE"
 	.	use cmd
 	.	write data
-	.	write /eof
 	.	set $X=0
+	.	write /eof
 	.	read data
 	.	close cmd
 	.	use old
