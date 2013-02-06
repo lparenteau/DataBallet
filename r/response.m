@@ -42,20 +42,11 @@ senderr(status)
 	; Send response headers
 	do sendresphdr()
 
-	; Headers end with a blank line
-	write eol
-
-	; Send error data, if any
-	set i=$order(response("content",""))
-	for  quit:i=""  do
-	.	write response("content",i)
-	.	set i=$order(response("content",i))
-
-	; Log request/response
+	; Make sure some required field are set before send response content
 	set:'$data(response("date")) response("date")=$horolog
 	set:'$data(request("method")) request("method")=""
 	set:'$data(request("uri")) request("uri")=""
-	do log^log()
+	do send()
 
 	quit
 
@@ -80,7 +71,7 @@ sendresphdr()
 	.	.	use old
 	.	set response("headers","Content-Type")=ct
 
-	if $data(response("headers","Content-Type")) do
+	if ($data(response("file"))!$data(response("content"))) do
 	.	; Handle Accept-Encoding compression
 	.	if $data(request("headers","ACCEPT-ENCODING")) do
 	.	.	set response("headers","Vary")="Accept-Encoding"

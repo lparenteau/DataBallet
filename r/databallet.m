@@ -93,7 +93,7 @@ conf()
 	set conf("compressible","application/javascript")=1
 
 	; DataBallet version : YYYYMMDD
-	set databalletver=20130201
+	set databalletver=20130206
 
 	quit
 
@@ -176,7 +176,7 @@ serve()
 	.	if connection("HTTPVER")="HTTP/1.1" set connection("CONNECTION")="KEEP-ALIVE" do keepalive(line) if 1
 	.	else  if connection("HTTPVER")="HTTP/1.0" set connection("CONNECTION")="CLOSE" do keepalive(line) if 1
 	.	else  if connection("HTTPVER")="" do serve09(line) if 1
-	.	else  do senderr^response("505")
+	.	else  set connection("HTTPVER")="HTTP/1.0" do senderr^response("505")
 	quit
 
 serve09(line)
