@@ -270,7 +270,8 @@ adminaction(docroot,urlroot)
 	else  if action="add" do  if 1
 	.	if $$methodis^request("PUT,POST") do  if 1
 	.	.	for i=1:1:3 set value=$zpiece(request("content"),"&",i),content($zpiece(value,"=",1))=$$paragraph($$decode^url($zpiece(value,"=",2,$zlength(line))))
-	.	.	do publish^news($get(content("title")),$get(content("summary")),$get(content("content")))
+	.	.	if postid'="" do update^news(postid,$get(content("title")),$get(content("summary")),$get(content("content")))  if 1
+	.	.	else  do publish^news($get(content("title")),$get(content("summary")),$get(content("content")))
 	.	.	do set^response(303)  set response("headers","Location")=urlroot_"admin/"
 	.	else  do set^response(404)
 	else  if action="update" do  if 1
@@ -320,3 +321,23 @@ publish(title,summary,content,published)
 	tcommit
 
 	quit
+
+update(postid,title,summary,content)
+	;
+	; Update a NEWS entry.
+	;
+	; All parameters excepting postid are optional and default to the current value.
+	;
+
+	; Default NEWS
+	if '$data(NEWS) new NEWS set NEWS="^NEWS"
+
+	tstart ():serial
+	set:$data(title) @NEWS@("post",postid,"title")=title
+	set:$data(summary) @NEWS@("post",postid,"summary")=summary
+	set:$data(content) @NEWS@("post",postid,"content")=content
+	set @NEWS@("post",postid,"updated")=$horolog
+	tcommit
+
+	quit
+
