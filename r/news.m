@@ -69,12 +69,14 @@ atomfeed(urlroot)
 	;
 	; Handle feed request
 	;
-	new header,author,posts,footer,postid,tag
+	new header,author,posts,footer,postid,tag,host
+
+	set host=$$FUNC^%LCASE(request("headers","HOST"))
 
 	; Header
-	set header="<?xml version=""1.0"" encoding=""utf-8""?><feed xmlns=""http://www.w3.org/2005/Atom"">"
-	set header=header_"<title>"_$get(@NEWS@("title"))_"</title>"_"<link href=""http://"_request("headers","HOST")_request("uri")_""" rel=""self"" type=""application/atom+xml"" />"
-	set header=header_"<link href=""http://"_request("headers","HOST")_urlroot_""" />"_"<id>http://"_request("headers","HOST")_request("uri")_"</id>"
+	set header="<?xml version=""1.0"" encoding=""utf-8""?><feed xmlns=""http://www.w3.org/2005/Atom"">"_eol
+	set header=header_"<title>"_$get(@NEWS@("title"))_"</title>"_"<link href=""http://"_host_request("uri")_""" rel=""self"" type=""application/atom+xml"" />"_eol
+	set header=header_"<link href=""http://"_request("headers","HOST")_urlroot_""" />"_"<id>http://"_host_request("uri")_"</id>"_eol
 	
 	; Auhor
 	set author="<author>"
@@ -89,18 +91,18 @@ atomfeed(urlroot)
 	set posts=""
 	set response("lastmod")="0,0"
 	for  quit:postid=""  do
-	.	set posts=posts_"<entry><title>"_@NEWS@("post",postid,"title")_"</title><link href=""http://"_request("headers","HOST")_urlroot_"posts/"_postid_""" />"
-	.	set posts=posts_"<id>"_request("headers","HOST")_":"_postid_"</id>"
-	.	set posts=posts_"<published>"_$zdate(@NEWS@("post",postid,"published"),"YEAR-MON-DD")_"T"_$zdate(@NEWS@("post",postid,"published"),"24:60:SS")_"Z</published>"
-	.	set posts=posts_"<updated>"_$zdate(@NEWS@("post",postid,"updated"),"YEAR-MON-DD")_"T"_$zdate(@NEWS@("post",postid,"updated"),"24:60:SS")_"Z</updated>"
-	.	set posts=posts_"<summary>"_$get(@NEWS@("post",postid,"summary"))_"</summary></entry>"
+	.	set posts=posts_"<entry><title>"_@NEWS@("post",postid,"title")_"</title><link href=""http://"_request("headers","HOST")_urlroot_"posts/"_postid_""" />"_eol
+	.	set posts=posts_"<id>"_host_":"_postid_"</id>"_eol
+	.	set posts=posts_"<published>"_$zdate(@NEWS@("post",postid,"published"),"YEAR-MM-DD")_"T"_$zdate(@NEWS@("post",postid,"published"),"24:60:SS")_"Z</published>"_eol
+	.	set posts=posts_"<updated>"_$zdate(@NEWS@("post",postid,"updated"),"YEAR-MM-DD")_"T"_$zdate(@NEWS@("post",postid,"updated"),"24:60:SS")_"Z</updated>"_eol
+	.	set posts=posts_"<summary>"_$get(@NEWS@("post",postid,"summary"))_"</summary></entry>"_eol
 	.	; Update last modified date if needed.
 	.	set:$$isnewer^date(@NEWS@("post",postid,"updated"),response("lastmod")) response("lastmod")=@NEWS@("post",postid,"updated")
 	.	set response("glolist",NEWS_"(""post"","_postid_",""updated"")")=""
 	.	; Get next post
 	.	set postid=$order(@NEWS@("post",postid),-1)
 
-	set header=header_"<updated>"_$zdate(response("lastmod"),"YEAR-MON-DD")_"T"_$zdate(response("lastmod"),"24:60:SS")_"Z</updated>"
+	set header=header_"<updated>"_$zdate(response("lastmod"),"YEAR-MM-DD")_"T"_$zdate(response("lastmod"),"24:60:SS")_"Z</updated>"
 
 	; Footer
 	set footer="</feed>"
@@ -160,7 +162,7 @@ post(docroot,urlroot)
 	;
 	new lastmod,postid
 
-	set postid=$zpiece(request("uri"),"/",4,4)
+	set postid=$zpiece($zpiece(request("uri"),"/",4,4),"?",1,1)
 	; Redirect to archive if no post requested
 	if postid="" do set^response(301)  set response("headers","Location")=urlroot_"archive/" quit
 
