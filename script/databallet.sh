@@ -49,6 +49,7 @@ function start() {
 	else
 		rm -f $pid
 		echo "Starting $progname at " `date` " using $configfile." >> $log
+		$gtm_dist/mupip rundown -r '*' >> $log 2>&1
 		TZ="Europe/London" nohup $gtm_dist/mumps -run start^databallet < /dev/null >> $log 2>&1 &
 		echo $! > $pid
 	fi
