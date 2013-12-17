@@ -44,6 +44,9 @@ handle(docroot,urlroot,NEWS)
 	; Load title
 	set localvar("title")=$get(@NEWS@("title"))
 
+	; Ensure it won't be served from cache if new post or title/author changed.
+	set response("glolist",NEWS_"(""updated"")")=""
+
 	; Return an atom feed for a "/<urlroot>/atom.xml" request,
 	; an archive/all posts HTML page for a "/<urlroot>/archive/" request,
 	; a specific post HTML page for a "/<urlroot>/posts/<id>" request,
@@ -284,6 +287,7 @@ adminaction(docroot,urlroot)
 	.	.	set @NEWS@("author","name")=$get(content("author"))
 	.	.	set @NEWS@("author","email")=$get(content("email"))
 	.	.	set @NEWS@("author","uri")=$get(content("uri"))
+	.	.	set @NEWS@("updated")=$horolog
 	.	.	tcommit
 	.	.	do set^response(303)  set response("headers","Location")=urlroot_"admin/"
 	.	else  do set^response(404)
@@ -308,17 +312,19 @@ publish(title,summary,content,published)
 	;
 	; All parameters are optional and default to an empty string, expect for published which default to $horolog.
 	;
-	new postid
+	new postid,now
 
 	; Default NEWS
 	if '$data(NEWS) new NEWS set NEWS="^NEWS"
 
+	set now=$HOROLOG
 	tstart ():serial
 	set (postid,@NEWS@("count"))=$get(@NEWS@("count"))+1
+	set @NEWS@("updated")=now
 	set @NEWS@("post",postid,"title")=$get(title)
 	set @NEWS@("post",postid,"summary")=$get(summary)
 	set @NEWS@("post",postid,"content")=$get(content)
-	set @NEWS@("post",postid,"updated")=$get(published,$horolog)
+	set @NEWS@("post",postid,"updated")=$get(published,now)
 	set:$get(@NEWS@("post",postid,"published"))="" @NEWS@("post",postid,"published")=@NEWS@("post",postid,"updated")
 	tcommit
 

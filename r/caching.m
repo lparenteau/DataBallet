@@ -87,10 +87,11 @@ serve()
 	use old
 	; Also, check for content based on globals.  Every global listed should contain a $H value, representing the last-modified date of
 	; some global variable that was used to construct the response.
-	new glo
+	new glo,now
 	set glo=$order(@CACHE@(host,hash,"glolist",""))
+	set now=$HOROLOG
 	for  quit:glo=""  do
-	.	set curlastmod=$get(@glo,$HOROLOG)
+	.	set curlastmod=$get(@glo,now)
 	.	set:$$isnewer^date(curlastmod,lastmod) lastmod=curlastmod
 	.	set glo=$order(@CACHE@(host,hash,"glolist",glo))
 	quit:$$isnewer^date(lastmod,@CACHE@(host,hash,"lastmod")) 0
