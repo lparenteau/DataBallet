@@ -303,7 +303,12 @@ paragraph(text)
 	set br=$char(13)_$char(10)
 	set p=text
 	for  quit:$zfind(p,br)=0  do
-	.	set p=$zpiece(p,br,1)_"</p><p>"_$zpiece(p,br,2,$zlength(p))
+	.	new start
+	.	set start=$zpiece(p,br,1)
+	.	; Only add '</p><p>' if the last piece of the string isn't that already.  This prevent
+	.	; multiple consecutives CRLF to be translated into multiple empty paragraphs.
+	.	if $zextract(start,$zlength(start)-6,$zlength(start))'="</p><p>"  do
+	.	.	set p=start_"</p><p>"_$zpiece(p,br,2,$zlength(p))
 	quit p
 
 publish(title,summary,content,published)
