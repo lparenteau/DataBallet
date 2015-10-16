@@ -1,0 +1,9 @@
+tls: {
+     verify-depth: 7;
+     CAfile: "/etc/ssl/mycerts/ca-bundle.pem";
+     tls : {
+           format: "PEM";
+           cert: "/etc/ssl/mycerts/ssl.crt";
+           key:  "/etc/ssl/mycerts/ssl.key";
+     };
+};
