@@ -1,6 +1,6 @@
 # DataBallet
 
-DataBallet is a web server and application framework implemented using the [M](https://en.wikipedia.org/wiki/MUMPS) language.  It is being developped and tested using [GT.M](http://fis-gtm.com/).
+DataBallet is a web server and application framework implemented using the [M](https://en.wikipedia.org/wiki/MUMPS) language.  It is being developed and tested using [GT.M](http://fis-gtm.com/).
 
 ## Configuration
 
